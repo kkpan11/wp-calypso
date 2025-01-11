@@ -20,7 +20,7 @@ import { errorNotice } from 'calypso/state/notices/actions';
 import { getCurrentOAuth2Client } from 'calypso/state/oauth2-clients/ui/selectors';
 import getCurrentQueryArguments from 'calypso/state/selectors/get-current-query-arguments';
 import getCurrentRoute from 'calypso/state/selectors/get-current-route';
-import isWooCommerceCoreProfilerFlow from 'calypso/state/selectors/is-woocommerce-core-profiler-flow';
+import isWooPasswordlessJPCFlow from 'calypso/state/selectors/is-woo-passwordless-jpc-flow';
 
 class SocialSignupForm extends Component {
 	static propTypes = {
@@ -40,17 +40,12 @@ class SocialSignupForm extends Component {
 	};
 
 	handleSignup = ( result ) => {
-		if ( ! result || window.sessionStorage.getItem( 'social_login_used' ) !== result.service ) {
-			return;
-		}
-
 		const { recordTracksEvent, isDevAccount, handleResponse } = this.props;
 		recordTracksEvent( 'calypso_signup_social_button_success', {
 			social_account_type: result.service,
 		} );
 
-		window.sessionStorage.removeItem( 'login_redirect_to' );
-		window.sessionStorage.removeItem( 'social_login_used' );
+		window.sessionStorage?.removeItem( 'login_redirect_to' );
 
 		handleResponse( result.service, result.access_token, result.id_token, {
 			...result,
@@ -73,8 +68,6 @@ class SocialSignupForm extends Component {
 			if ( redirectToAfterLoginUrl && typeof window !== 'undefined' ) {
 				window.sessionStorage.setItem( 'signup_redirect_to', redirectToAfterLoginUrl );
 			}
-
-			window.sessionStorage.setItem( 'social_login_used', service );
 		} catch ( error ) {
 			showErrorNotice(
 				translate(
@@ -153,7 +146,8 @@ class SocialSignupForm extends Component {
 export default connect(
 	( state ) => {
 		const query = getCurrentQueryArguments( state );
-		const isDevAccount = query?.ref === 'hosting-lp' || query?.ref === 'developer-lp';
+		const devAccountLandingPageRefs = [ 'hosting-lp', 'developer-lp' ];
+		const isDevAccount = devAccountLandingPageRefs.includes( query?.ref );
 
 		return {
 			recordTracksEvent: recordTracks,
@@ -161,8 +155,7 @@ export default connect(
 			oauth2Client: getCurrentOAuth2Client( state ),
 			isDevAccount: isDevAccount,
 			isWoo:
-				isWooOAuth2Client( getCurrentOAuth2Client( state ) ) ||
-				isWooCommerceCoreProfilerFlow( state ),
+				isWooOAuth2Client( getCurrentOAuth2Client( state ) ) || isWooPasswordlessJPCFlow( state ),
 		};
 	},
 	{ showErrorNotice: errorNotice }

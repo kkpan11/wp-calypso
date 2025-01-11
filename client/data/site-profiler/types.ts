@@ -92,7 +92,7 @@ export interface HostingProviderQueryResponse {
 	hosting_provider: HostingProvider;
 }
 
-export type Metrics = 'cls' | 'lcp' | 'fcp' | 'ttfb' | 'inp' | 'tbt';
+export type Metrics = 'cls' | 'lcp' | 'fcp' | 'ttfb' | 'inp' | 'tbt' | 'overall';
 
 export type Scores = 'good' | 'needs-improvement' | 'poor';
 
@@ -145,19 +145,41 @@ export type PerformanceMetricsHistory = {
 		cls?: number[];
 		inp?: number[];
 		tbt?: number[];
+		overall?: number[];
 	};
 };
 
 export type PerformanceReport = {
 	audits: Record< string, PerformanceMetricsItemQueryResponse >;
+	crux_score: number;
 	performance: number;
 	overall_score: number;
+	fullPageScreenshot: FullPageScreenshot;
 	is_wpcom: boolean;
 	is_wordpress: boolean;
 	screenshots?: ScreenShotsTimeLine[];
 	history: PerformanceMetricsHistory;
 	timestamp?: string;
+	share_link: string | '';
 } & BasicMetrics;
+
+export type ScreenshotNode = {
+	width: number;
+	right: number;
+	bottom: number;
+	top: number;
+	height: number;
+	left: number;
+};
+
+export interface FullPageScreenshot {
+	screenshot: {
+		data: string;
+		height: number;
+		width: number;
+	};
+	nodes: Record< string, ScreenshotNode >;
+}
 
 export interface UrlPerformanceMetricsQueryResponse {
 	webtestpage_org: {
@@ -171,6 +193,9 @@ export interface UrlPerformanceInsightsQueryResponse {
 		status: string;
 		mobile: PerformanceReport | string;
 		desktop: PerformanceReport | string;
+	};
+	wpscan: {
+		status: string;
 	};
 }
 
@@ -187,6 +212,7 @@ export interface PerformanceMetricsItemQueryResponse {
 	type: 'warning' | 'fail';
 	displayValue?: string;
 	details?: PerformanceMetricsDetailsQueryResponse;
+	metricSavings?: { FCP?: number; LCP?: number; CLS?: number; INP?: number };
 }
 
 export interface PerformanceMetricsDetailsQueryResponse {

@@ -115,6 +115,10 @@
 	}
 }
 
+.plans-grid-next-features-grid__mobile-plan-card-no-foldable-container {
+	margin-top: 24px;
+}
+
 .plan-features-2023-grid__mobile-view {
 	display: flex;
 	flex-direction: column;
@@ -319,6 +323,10 @@
 		@include plans-grid-medium-large {
 			padding-top: 14px;
 		}
+	}
+
+	&.is-reduced-feature-group-spacing > .plan-features-2023-grid__table-item {
+		padding-top: 0;
 	}
 }
 
@@ -595,9 +603,6 @@
 			border: none;
 			background-color: #f9f9f9;
 			box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.04);
-			.plan-features-2023-grid__actions-button {
-				font-size: rem(12px);
-			}
 		}
 	}
 

@@ -1,3 +1,4 @@
+import config from '@automattic/calypso-config';
 import { safeImageUrl } from '@automattic/calypso-url';
 import { CompactCard } from '@automattic/components';
 import { Icon, globe } from '@wordpress/icons';
@@ -8,6 +9,7 @@ import { connect } from 'react-redux';
 import Site from 'calypso/blocks/site';
 import FormattedHeader from 'calypso/components/formatted-header';
 import { decodeEntities } from 'calypso/lib/formatting';
+import { getPluginTitle } from 'calypso/lib/login';
 import { login } from 'calypso/lib/paths';
 import versionCompare from 'calypso/lib/version-compare';
 import { getCurrentUser } from 'calypso/state/current-user/selectors';
@@ -19,7 +21,7 @@ export class AuthFormHeader extends Component {
 	static propTypes = {
 		authQuery: authQueryPropTypes.isRequired,
 		isWooOnboarding: PropTypes.bool,
-		isWooCoreProfiler: PropTypes.bool,
+		isWooPasswordlessJPC: PropTypes.bool,
 		isWpcomMigration: PropTypes.bool,
 		wooDnaConfig: PropTypes.object,
 		isFromAutomatticForAgenciesPlugin: PropTypes.bool,
@@ -27,6 +29,7 @@ export class AuthFormHeader extends Component {
 		// Connected props
 		translate: PropTypes.func.isRequired,
 		user: PropTypes.object,
+		disableSiteCard: PropTypes.bool,
 	};
 
 	getState() {
@@ -56,7 +59,7 @@ export class AuthFormHeader extends Component {
 			translate,
 			partnerSlug,
 			isWooOnboarding,
-			isWooCoreProfiler,
+			isWooPasswordlessJPC,
 			wooDnaConfig,
 			isWpcomMigration,
 			isFromAutomatticForAgenciesPlugin,
@@ -103,8 +106,13 @@ export class AuthFormHeader extends Component {
 			}
 		}
 
-		if ( isWooCoreProfiler ) {
-			return translate( 'One last step!' );
+		if ( isWooPasswordlessJPC ) {
+			switch ( currentState ) {
+				case 'logged-out':
+					return translate( 'Create an account' );
+				default:
+					return translate( 'Connect your account' );
+			}
 		}
 
 		if ( isWpcomMigration ) {
@@ -144,7 +152,7 @@ export class AuthFormHeader extends Component {
 		const {
 			translate,
 			isWooOnboarding,
-			isWooCoreProfiler,
+			isWooPasswordlessJPC,
 			wooDnaConfig,
 			isWpcomMigration,
 			isFromAutomatticForAgenciesPlugin,
@@ -162,14 +170,15 @@ export class AuthFormHeader extends Component {
 			}
 		}
 
-		if ( isWooCoreProfiler ) {
-			const pluginNames = {
-				'jetpack-ai': 'Jetpack AI',
-				'jetpack-boost': 'Jetpack Boost',
-				default: 'Jetpack',
-			};
-
-			const pluginName = pluginNames[ this.props.authQuery.plugin_name ] || pluginNames.default;
+		if ( isWooPasswordlessJPC ) {
+			const pluginName = getPluginTitle( this.props.authQuery?.plugin_name, translate );
+			const reviewDocLink = (
+				<a
+					href="https://woocommerce.com/document/connect-your-store-to-a-wordpress-com-account/"
+					target="_blank"
+					rel="noreferrer"
+				/>
+			);
 			const translateParams = {
 				components: {
 					br: <br />,
@@ -179,6 +188,7 @@ export class AuthFormHeader extends Component {
 								isJetpack: true,
 								redirectTo: window.location.href,
 								from: this.props.authQuery.from,
+								plugin_name: this.props.authQuery.plugin_name,
 							} ) }
 						/>
 					),
@@ -188,19 +198,45 @@ export class AuthFormHeader extends Component {
 					'Link displayed on the Jetpack Connect signup page for users to log in with a WordPress.com account',
 			};
 
-			switch ( currentState ) {
-				case 'logged-out':
-					return translate(
-						"We'll make it quick – promise. In order to take advantage of the benefits offered by %(pluginName)s, you'll need to connect your store to your WordPress.com account. {{br/}} Already have one? {{a}}Log in{{/a}}",
-						translateParams
-					);
-				default:
-					return translate(
-						"We'll make it quick – promise. In order to take advantage of the benefits offered by %(pluginName)s, you'll need to connect your store to your WordPress.com account.",
-						{
-							args: { pluginName },
-						}
-					);
+			if ( config.isEnabled( 'woocommerce/core-profiler-passwordless-auth' ) ) {
+				switch ( currentState ) {
+					case 'logged-out':
+						return translate(
+							'To access all of the features and functionality in %(pluginName)s, you’ll first need to connect your store to a WordPress.com account. Please create one now, or {{a}}log in{{/a}}. For more information, please {{doc}}review our documentation{{/doc}}.',
+							{
+								...translateParams,
+								components: {
+									...translateParams.components,
+									doc: reviewDocLink,
+								},
+							}
+						);
+					default:
+						return translate(
+							'To access all of the features and functionality in %(pluginName)s, you’ll first need to connect your store to a WordPress.com account. For more information, please {{doc}}review our documentation{{/doc}}.',
+							{
+								args: { pluginName },
+								components: {
+									doc: reviewDocLink,
+								},
+							}
+						);
+				}
+			} else {
+				switch ( currentState ) {
+					case 'logged-out':
+						return translate(
+							"We'll make it quick – promise. In order to take advantage of the benefits offered by %(pluginName)s, you'll need to connect your store to your WordPress.com account. {{br/}} Already have one? {{a}}Log in{{/a}}",
+							translateParams
+						);
+					default:
+						return translate(
+							"We'll make it quick – promise. In order to take advantage of the benefits offered by %(pluginName)s, you'll need to connect your store to your WordPress.com account.",
+							{
+								args: { pluginName },
+							}
+						);
+				}
 			}
 		}
 
@@ -255,11 +291,11 @@ export class AuthFormHeader extends Component {
 	}
 
 	getSiteCard() {
-		const { isWpcomMigration, isWooCoreProfiler } = this.props;
+		const { isWpcomMigration, isWooPasswordlessJPC } = this.props;
 		const { jpVersion } = this.props.authQuery;
 		if (
 			// Always show the site card for Woo Core Profiler
-			! isWooCoreProfiler &&
+			! isWooPasswordlessJPC &&
 			! versionCompare( jpVersion, '4.0.3', '>' )
 		) {
 			return null;
@@ -287,7 +323,7 @@ export class AuthFormHeader extends Component {
 
 		return (
 			<CompactCard className="jetpack-connect__site">
-				<Site site={ site } defaultIcon={ isWooCoreProfiler ? <Icon icon={ globe } /> : null } />
+				<Site site={ site } defaultIcon={ isWooPasswordlessJPC ? <Icon icon={ globe } /> : null } />
 			</CompactCard>
 		);
 	}
@@ -299,7 +335,7 @@ export class AuthFormHeader extends Component {
 					headerText={ this.getHeaderText() }
 					subHeaderText={ this.getSubHeaderText() }
 				/>
-				{ this.getSiteCard() }
+				{ ! this.props.disableSiteCard && this.getSiteCard() }
 			</div>
 		);
 	}

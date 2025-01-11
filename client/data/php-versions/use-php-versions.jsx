@@ -1,8 +1,8 @@
 import { useTranslate } from 'i18n-calypso';
 
 export const usePhpVersions = () => {
-	const recommendedValue = '8.1';
 	const translate = useTranslate();
+	const recommendedValue = '8.2';
 
 	const phpVersions = [
 		{
@@ -24,15 +24,15 @@ export const usePhpVersions = () => {
 			disabled: true, // EOL 26th November, 2023
 		},
 		{
+			label: '8.1',
+			value: '8.1',
+		},
+		{
 			label: translate( '%s (recommended)', {
-				args: '8.1',
+				args: '8.2',
 				comment: 'PHP Version for a version switcher',
 			} ),
 			value: recommendedValue,
-		},
-		{
-			label: '8.2',
-			value: '8.2',
 		},
 		{
 			label: '8.3',

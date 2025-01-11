@@ -17,6 +17,7 @@ $button-border: 4px;
 
 	.layout.is-logged-in .layout__content {
 		overflow: clip;
+		padding-top: 47px;
 
 		.theme__sheet-screenshot,
 		.theme__sheet-web-preview {
@@ -59,40 +60,23 @@ $button-border: 4px;
 			height: calc(100vh - var(--masterbar-height) - var(--content-padding-top) - var(--content-padding-bottom));
 			max-width: none;
 			overflow-y: auto;
+			padding-bottom: 0;
+		}
+	}
+
+	.theme__sheet .navigation-header {
+		margin: 0 auto;
+		max-width: $theme-sheet-content-max-width;
+		padding: 24px 44px;
+
+		@media screen and (min-width: 960px) {
+			padding: 24px 20px;
 		}
 	}
 }
 
 .main.theme__sheet {
 	max-width: none;
-}
-
-.theme__sheet-bar {
-	background-color: var(--color-masterbar-item-hover-background);
-	color: var(--studio-white);
-	height: 180px;
-	padding: 0;
-	margin: 0;
-}
-
-.theme__sheet-bar-title {
-	display: flex;
-	align-items: flex-end;
-	font-size: $font-title-large;
-	font-weight: 400;
-	padding-top: 78px;
-	padding-left: 25px;
-	line-height: 1;
-}
-
-.theme__sheet-bar-tag {
-	max-width: none;
-	display: block;
-	color: var(--color-text-inverted);
-	font-size: $font-body;
-	font-weight: 400;
-	padding-top: 5px;
-	padding-left: 25px;
 }
 
 .theme__sheet-bar-soft-launched {
@@ -164,6 +148,15 @@ $button-border: 4px;
 
 		.theme__sheet-column-right {
 			order: 1;
+		}
+	}
+
+	.theme__sheet-demo-button,
+	.theme__sheet-preview-demo-site {
+		svg {
+			vertical-align: text-bottom;
+			margin-left: 4px;
+			fill: currentColor;
 		}
 	}
 }
@@ -278,29 +271,6 @@ $button-border: 4px;
 
 .theme__sheet-column-right {
 	grid-area: preview;
-}
-
-.theme__sheet-action-bar-container {
-	box-shadow: 0 1px var(--color-border-subtle);
-}
-
-.header-cake.card.theme__sheet-action-bar {
-	box-shadow: none;
-	box-sizing: content-box;
-	margin: 0 auto;
-	max-width: $theme-sheet-content-max-width;
-	min-height: 70px;
-	padding: 0 20px;
-	position: relative;
-
-	@include breakpoint-deprecated( "<960px" ) {
-		margin: 0 0 32px 0;
-		min-height: 60px;
-	}
-}
-
-.is-mobile-app-view .header-cake.card.theme__sheet-action-bar {
-	display: none;
 }
 
 .theme__sheet-primary-button {

@@ -6,6 +6,14 @@
 	}
 }
 
+.global-notices {
+	.notice {
+		margin: 0;
+		padding: 0;
+		border-left: 0;
+	}
+}
+
 // Since the component `Notice` styles affect the WP Admin notice styles,
 // we need to restore by overriding them except for `.wpcomsh-notice` on Atomic sites.
 .notice:not(.wpcomsh-notice) {
@@ -69,6 +77,11 @@
 	& .highlight-cards.has-odyssey-stats-bg-color,
 	& .inner-notice-container.has-odyssey-stats-bg-color {
 		background-color: var(--jetpack-white-off);
+	}
+	& .stats .navigation-header__main .jetpack-header {
+		@media (max-width: 600px) {
+			padding-left: 0;
+		}
 	}
 
 	// Offset margin of menu items set in Calypso.

@@ -6,7 +6,6 @@
 	"server_side_boom_analytics_enabled": false,
 	"boom_analytics_key": false,
 	"client_slug": false,
-	"daily_post_blog_id": 489937,
 	"facebook_api_key": false,
 	"features": {},
 	"google_recaptcha_site_key": false,
@@ -174,6 +173,7 @@
 		"a8c-for-agencies-partner-directory": false,
 		"a8c-for-agencies-client": false,
 		"a8c-for-agencies-team": false,
+		"a8c-for-agencies-agency-tier": false,
 		"jetpack-cloud": false,
 		"jetpack-cloud-overview": false,
 		"jetpack-cloud-agency-dashboard": false,
@@ -257,8 +257,8 @@
 		"guided",
 		"domain-for-gravatar",
 		"plans-first",
-		"onboarding-affiliate",
-		"email-subscription"
+		"onboarding-affiliate"
 	],
+	"100_year_plan_calendly_id": "wpcom-100-years/30min",
 	"bilmur_url": "https://s0.wp.com/wp-content/js/bilmur.min.js"
 }

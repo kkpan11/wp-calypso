@@ -4,13 +4,13 @@ import clsx from 'clsx';
 import { useTranslate } from 'i18n-calypso';
 import { useContext, useMemo, useState } from 'react';
 import A4ANumberInput from 'calypso/a8c-for-agencies/components/a4a-number-input';
+import SimpleList from 'calypso/a8c-for-agencies/components/simple-list';
 import useWPCOMOwnedSites from 'calypso/a8c-for-agencies/hooks/use-wpcom-owned-sites';
-import SimpleList from 'calypso/a8c-for-agencies/sections/marketplace/common/simple-list';
 import { MarketplaceTypeContext } from 'calypso/a8c-for-agencies/sections/marketplace/context';
 import useProductAndPlans from 'calypso/a8c-for-agencies/sections/marketplace/hooks/use-product-and-plans';
+import useWPCOMPlanDescription from 'calypso/a8c-for-agencies/sections/marketplace/hooks/use-wpcom-plan-description';
 import { getWPCOMCreatorPlan } from 'calypso/a8c-for-agencies/sections/marketplace/lib/hosting';
-import { calculateTier } from 'calypso/a8c-for-agencies/sections/marketplace/wpcom-overview/lib/wpcom-bulk-values-utils';
-import useWPCOMPlanDescription from 'calypso/a8c-for-agencies/sections/marketplace/wpcom-overview/wpcom-card/hooks/use-wpcom-plan-description';
+import { calculateTier } from 'calypso/a8c-for-agencies/sections/marketplace/lib/wpcom-bulk-values-utils';
 import { APIProductFamilyProduct } from 'calypso/state/partner-portal/types';
 import useWPCOMDiscountTiers from '../../../hooks/use-wpcom-discount-tiers';
 import WPCOMPlanSlider from './slider';
@@ -111,10 +111,11 @@ function PlanDetails( {
 			</div>
 
 			<div className="wpcom-plan-selector__cta">
-				<div className="wpcom-plan-selector__cta-label">
-					{ translate( 'How many sites would you like to buy?' ) }
-				</div>
-
+				{ ! referralMode && (
+					<div className="wpcom-plan-selector__cta-label">
+						{ translate( 'How many sites would you like to buy?' ) }
+					</div>
+				) }
 				<div className="wpcom-plan-selector__cta-component">
 					<Button
 						className="wpcom-plan-selector__cta-button"
@@ -179,6 +180,8 @@ export default function WPCOMPlanSelector( { onSelect }: WPCOMPlanSelectorProps 
 	// Show the WPCOM slider if the user has less than 10 plans and is not in referral mode.
 	const showWPCOMSlider = ! referralMode && ownedPlans < MAX_PLANS_FOR_SLIDER;
 
+	const displayQuantity = referralMode ? 1 : quantity;
+
 	return (
 		<div
 			className={ clsx( 'wpcom-plan-selector', {
@@ -188,7 +191,7 @@ export default function WPCOMPlanSelector( { onSelect }: WPCOMPlanSelectorProps 
 			<div className="wpcom-plan-selector__slider-container">
 				{ showWPCOMSlider && (
 					<WPCOMPlanSlider
-						quantity={ quantity }
+						quantity={ displayQuantity }
 						onChange={ setQuantity }
 						ownedPlans={ ownedPlans }
 					/>
@@ -202,7 +205,7 @@ export default function WPCOMPlanSelector( { onSelect }: WPCOMPlanSelectorProps 
 						onSelect={ onSelect }
 						ownedPlans={ ownedPlans }
 						referralMode={ referralMode }
-						quantity={ quantity }
+						quantity={ displayQuantity }
 						setQuantity={ setQuantity }
 					/>
 				) : (

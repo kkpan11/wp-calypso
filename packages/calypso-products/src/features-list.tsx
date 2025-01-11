@@ -1,8 +1,9 @@
 import { isEnabled } from '@automattic/calypso-config';
 import { MaterialIcon, ExternalLink, ExternalLinkWithTracking } from '@automattic/components';
-import { englishLocales, localizeUrl } from '@automattic/i18n-utils';
+import { localizeUrl } from '@automattic/i18n-utils';
 import { DOMAIN_PRICING_AND_AVAILABLE_TLDS } from '@automattic/urls';
 import i18n from 'i18n-calypso';
+import { MemoExoticComponent } from 'react';
 import Theme2Image from './assets/images/theme-2.jpg';
 import {
 	FEATURE_SPAM_10K_PER_MONTH,
@@ -291,6 +292,7 @@ import {
 	FEATURE_COMMISSION_FEE_STANDARD_FEATURES,
 	FEATURE_COMMISSION_FEE_WOO_FEATURES,
 	FEATURE_STATS_PAID,
+	FEATURE_STATS_COMMERCIAL,
 	FEATURE_SENSEI_SUPPORT,
 	FEATURE_SENSEI_UNLIMITED,
 	FEATURE_SENSEI_INTERACTIVE,
@@ -313,6 +315,18 @@ import {
 	FEATURE_SOCIAL_SHARES_1000,
 	FEATURE_SOCIAL_ENHANCED_PUBLISHING,
 	FEATURE_SOCIAL_IMAGE_GENERATOR,
+	FEATURE_THEMES_PREMIUM_AND_STORE,
+	FEATURE_UNLIMITED_ENTITIES,
+	FEATURE_WOO_THEMES,
+	FEATURE_WOO_SOCIAL_MEDIA_INTEGRATIONS,
+	FEATURE_GOOGLE_LISTING_ADS,
+	FEATURE_WOO_PAYMENTS,
+	FEATURE_WOO_SHIPPING_TRACKING,
+	FEATURE_WOO_TAX_SOLUTIONS,
+	FEATURE_WOO_BRANDS,
+	FEATURE_WOO_AUTOMATE,
+	FEATURE_CONNECT_ANALYTICS,
+	FEATURE_LIMITED_SITE_ACTIVITY_LOG,
 } from './constants';
 import type { FeatureList } from './types';
 
@@ -516,17 +530,20 @@ const FEATURES_LIST: FeatureList = {
 
 	[ WPCOM_FEATURES_PREMIUM_THEMES_UNLIMITED ]: {
 		getSlug: () => WPCOM_FEATURES_PREMIUM_THEMES_UNLIMITED,
-		getTitle: () => {
-			return i18n.translate( 'Access to all premium themes' );
-		},
+		getTitle: () => i18n.translate( 'All premium themes' ),
 		getDescription: () => {
 			return i18n.translate( 'Switch between all of our premium design themes.' );
 		},
 	},
 	[ WPCOM_FEATURES_PREMIUM_THEMES_LIMITED ]: {
 		getSlug: () => WPCOM_FEATURES_PREMIUM_THEMES_LIMITED,
-		getTitle: () => i18n.translate( 'Access to dozens of premium themes ' ),
+		getTitle: () => i18n.translate( 'Dozens of premium themes' ),
 		getDescription: () => i18n.translate( 'Switch between a collection of premium design themes.' ),
+	},
+	[ FEATURE_THEMES_PREMIUM_AND_STORE ]: {
+		getSlug: () => FEATURE_THEMES_PREMIUM_AND_STORE,
+		getTitle: () => i18n.translate( 'All premium and store themes' ),
+		getDescription: () => i18n.translate( 'Switch between all of our themes.' ),
 	},
 
 	[ FEATURE_MONETISE ]: {
@@ -1178,7 +1195,7 @@ const FEATURES_LIST: FeatureList = {
 	// in the near future.
 	[ FEATURE_PRODUCT_SCAN_DAILY_V2 ]: {
 		getSlug: () => FEATURE_PRODUCT_SCAN_DAILY_V2,
-		getIcon: () => ( { icon: 'security', component: MaterialIcon } ),
+		getIcon: () => ( { icon: 'security', component: MaterialIcon as MemoExoticComponent< any > } ),
 		getTitle: () => i18n.translate( 'Scan (daily, automated)' ),
 		getDescription: () =>
 			i18n.translate(
@@ -1197,7 +1214,7 @@ const FEATURES_LIST: FeatureList = {
 	// in the near future.
 	[ FEATURE_PRODUCT_SCAN_REALTIME_V2 ]: {
 		getSlug: () => FEATURE_PRODUCT_SCAN_REALTIME_V2,
-		getIcon: () => ( { icon: 'security', component: MaterialIcon } ),
+		getIcon: () => ( { icon: 'security', component: MaterialIcon as MemoExoticComponent< any > } ),
 		getTitle: () => i18n.translate( 'Scan (real-time, automated)' ),
 		getDescription: () =>
 			i18n.translate(
@@ -1336,7 +1353,7 @@ const FEATURES_LIST: FeatureList = {
 
 	[ FEATURE_ONE_CLICK_RESTORE_V2 ]: {
 		getSlug: () => FEATURE_ONE_CLICK_RESTORE_V2,
-		getTitle: () => i18n.translate( 'One-click restore' ),
+		getTitle: () => i18n.translate( 'One-click restores' ),
 		getDescription: () =>
 			i18n.translate(
 				'Revert back to a point-in-time in your site’s history, with a single click.'
@@ -1611,7 +1628,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_AD_FREE_EXPERIENCE ]: {
 		getSlug: () => FEATURE_AD_FREE_EXPERIENCE,
-		getTitle: () => i18n.translate( 'Ad-free experience' ),
+		getTitle: () => i18n.translate( 'Ad-free browsing experience for your visitors' ),
 		getDescription: () =>
 			i18n.translate( 'Unlock a clean, ad-free browsing experience for your visitors.' ),
 	},
@@ -1819,7 +1836,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_STYLE_CUSTOMIZATION ]: {
 		getSlug: () => FEATURE_STYLE_CUSTOMIZATION,
-		getTitle: () => i18n.translate( 'Customize fonts and colors' ),
+		getTitle: () => i18n.translate( 'Customize fonts and colors sitewide' ),
 		getCompareTitle: () =>
 			i18n.translate( 'Take control of every font, color, and detail of your site’s design.' ),
 		getDescription: () =>
@@ -1847,6 +1864,18 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_STATS_PAID ]: {
 		getSlug: () => FEATURE_STATS_PAID,
+		getTitle: () => {
+			return isEnabled( 'stats/paid-wpcom-v3' )
+				? i18n.translate( 'Detailed traffic stats beyond the last 7 days and site insights' )
+				: i18n.translate( 'In-depth site analytics dashboard' );
+		},
+		getDescription: () =>
+			i18n.translate(
+				'Deep-dive analytics and conversion data to help you make decisions to grow your site.'
+			),
+	},
+	[ FEATURE_STATS_COMMERCIAL ]: {
+		getSlug: () => FEATURE_STATS_COMMERCIAL,
 		getTitle: () => i18n.translate( 'In-depth site analytics dashboard' ),
 		getDescription: () =>
 			i18n.translate(
@@ -1875,7 +1904,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_CDN ]: {
 		getSlug: () => FEATURE_CDN,
-		getTitle: () => i18n.translate( 'Global CDN' ),
+		getTitle: () => i18n.translate( 'Global CDN with 28+ locations' ),
 		getCompareTitle: () =>
 			i18n.translate( 'Rely on ultra-fast site speeds, from any location on earth.' ),
 		getDescription: () =>
@@ -1889,7 +1918,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_DATACENTRE_FAILOVER ]: {
 		getSlug: () => FEATURE_DATACENTRE_FAILOVER,
-		getTitle: () => i18n.translate( 'Automatic datacenter fail-over' ),
+		getTitle: () => i18n.translate( 'Automatic datacenter failover' ),
 		getDescription: () =>
 			i18n.translate( 'Count on your site being replicated in real-time to a second data center.' ),
 	},
@@ -1920,18 +1949,18 @@ const FEATURES_LIST: FeatureList = {
 		getTitle: () => i18n.translate( 'Vulnerability notifications for core and plugins' ),
 		getDescription: () =>
 			i18n.translate(
-				'Stress less knowing there’s a dedicated team identifying potential vulnerabilities for WordPress and plugins, ensuring early detection and preventing future attacks.'
+				'We have a dedicated team identifying potential vulnerabilities for WordPress and plugins, ensuring early detection and preventing future attacks.'
 			),
 	},
 	[ FEATURE_SECURITY_DDOS ]: {
 		getSlug: () => FEATURE_SECURITY_DDOS,
 		getTitle: () => i18n.translate( 'DDoS protection and mitigation' ),
 		getDescription: () =>
-			i18n.translate( 'Breeze past DDoS attacks thanks to real time monitoring and mitigation.' ),
+			i18n.translate( 'Breeze past DDoS attacks thanks to real-time monitoring and mitigation.' ),
 	},
 	[ FEATURE_DEV_TOOLS ]: {
 		getSlug: () => FEATURE_DEV_TOOLS,
-		getTitle: () => i18n.translate( 'SFTP/SSH, WP-CLI, Git commands and GitHub Deployments' ),
+		getTitle: () => i18n.translate( 'SFTP/SSH, WP-CLI, Git commands, and GitHub Deployments' ),
 		getDescription: () =>
 			i18n.translate( 'Use familiar developer tools to manage and deploy your site.' ),
 	},
@@ -1943,7 +1972,7 @@ const FEATURES_LIST: FeatureList = {
 
 	[ FEATURE_SEAMLESS_STAGING_PRODUCTION_SYNCING ]: {
 		getSlug: () => FEATURE_SEAMLESS_STAGING_PRODUCTION_SYNCING,
-		getTitle: () => i18n.translate( 'Seamless staging and production syncing' ),
+		getTitle: () => i18n.translate( 'Seamless syncing between staging and production' ),
 		getDescription: () =>
 			i18n.translate(
 				'Iterate faster and deploy confidently by synchronizing staging and production environments in a few short steps.'
@@ -2072,7 +2101,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_MIN_MAX_ORDER_QUANTITY ]: {
 		getSlug: () => FEATURE_MIN_MAX_ORDER_QUANTITY,
-		getTitle: () => i18n.translate( 'Min/max order quantities' ),
+		getTitle: () => i18n.translate( 'Min/Max Quantities' ),
 		getDescription: () =>
 			i18n.translate( 'Specify the minimum and maximum allowed product quantities for orders.' ),
 		getCompareSubtitle: () => i18n.translate( 'Seamlessly integrated with your plan' ),
@@ -2199,7 +2228,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_VIDEOPRESS_JP ]: {
 		getSlug: () => FEATURE_VIDEOPRESS_JP,
-		getTitle: () => i18n.translate( 'Upload 4K videos with VideoPress' ),
+		getTitle: () => i18n.translate( 'Unlimited VideoPress videos' ),
 		getDescription: () =>
 			i18n.translate( 'Showcase your videos beautifully with the 4K VideoPress player.' ),
 	},
@@ -2253,13 +2282,13 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_PLUGIN_AUTOUPDATE_JP ]: {
 		getSlug: () => FEATURE_PLUGIN_AUTOUPDATE_JP,
-		getTitle: () => i18n.translate( 'Plugin auto-updates' ),
+		getTitle: () => i18n.translate( 'Bundled plugin auto-updates' ),
 		getDescription: () =>
 			i18n.translate( 'Forget about time-consuming plugin updates and update nags.' ),
 	},
 	[ FEATURE_SITE_ACTIVITY_LOG_JP ]: {
 		getSlug: () => FEATURE_SITE_ACTIVITY_LOG_JP,
-		getTitle: () => i18n.translate( 'Site activity log' ),
+		getTitle: () => i18n.translate( 'Unlimited site activity log' ),
 		getDescription: () =>
 			i18n.translate( 'Keep an administrative eye on activity across your site.' ),
 	},
@@ -2271,8 +2300,9 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_PAYPAL_JP ]: {
 		getSlug: () => FEATURE_PAYPAL_JP,
-		getTitle: () => i18n.translate( 'Pay with PayPal' ),
-		getDescription: () => i18n.translate( 'Collect payments with PayPal.' ),
+		getTitle: () => i18n.translate( 'Collect payments with PayPal' ),
+		getDescription: () =>
+			i18n.translate( 'Collect payments or donations securely through your site via PayPal.' ),
 	},
 	[ FEATURE_PAYMENT_BUTTONS_JP ]: {
 		getSlug: () => FEATURE_PAYMENT_BUTTONS_JP,
@@ -2284,7 +2314,9 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_WOOCOMMERCE_HOSTING ]: {
 		getSlug: () => FEATURE_WOOCOMMERCE_HOSTING,
-		getTitle: () => i18n.translate( 'Optimized WooCommerce hosting' ),
+		getTitle: () => {
+			return i18n.translate( 'eCommerce tools and optimized WooCommerce hosting' );
+		},
 		getDescription: () =>
 			i18n.translate(
 				'Enjoy a hosting solution tailored to enhance the performance and security of sites running WooCommerce.'
@@ -2326,10 +2358,10 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_PRODUCT_ADD_ONS ]: {
 		getSlug: () => FEATURE_PRODUCT_ADD_ONS,
-		getTitle: () => i18n.translate( 'Product add-ons' ),
+		getTitle: () => i18n.translate( 'Product Add-Ons' ),
 		getDescription: () =>
 			i18n.translate(
-				'Increase your revenue with add-ons like gift wrapping or personalizations like engraving.'
+				'Offer extra products and services, such as gift wrapping, a special message, extended warranty, insurance, customizations, and more.'
 			),
 		getCompareSubtitle: () => i18n.translate( 'Seamlessly integrated with your plan' ),
 	},
@@ -2406,29 +2438,15 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_FAST_SUPPORT_FROM_EXPERTS ]: {
 		getSlug: () => FEATURE_FAST_SUPPORT_FROM_EXPERTS,
-		getTitle: () =>
-			englishLocales.includes( i18n.getLocaleSlug() || 'en' ) ||
-			i18n.hasTranslation( 'Fast support from our expert team' )
-				? i18n.translate( 'Fast support from our expert team' )
-				: i18n.translate( 'Expert support' ),
+		getTitle: () => i18n.translate( 'Fast support from our expert team' ),
 		getDescription: () =>
-			englishLocales.includes( i18n.getLocaleSlug() || 'en' ) ||
-			i18n.hasTranslation( 'Prompt support from our expert, friendly Happiness team' )
-				? i18n.translate( 'Prompt support from our expert, friendly Happiness team' )
-				: i18n.translate( 'Expert support' ),
+			i18n.translate( 'Prompt support from our expert, friendly Happiness team' ),
 	},
 	[ FEATURE_PRIORITY_24_7_SUPPORT ]: {
 		getSlug: () => FEATURE_PRIORITY_24_7_SUPPORT,
-		getTitle: () =>
-			englishLocales.includes( i18n.getLocaleSlug() || 'en' ) ||
-			i18n.hasTranslation( 'Priority 24/7 support from our expert team' )
-				? i18n.translate( 'Priority 24/7 support from our expert team' )
-				: i18n.translate( '24/7 priority support' ),
+		getTitle: () => i18n.translate( 'Priority 24/7 support from our expert team' ),
 		getDescription: () =>
-			englishLocales.includes( i18n.getLocaleSlug() || 'en' ) ||
-			i18n.hasTranslation( 'The fastest 24/7 support from our expert, friendly Happiness team' )
-				? i18n.translate( 'The fastest 24/7 support from our expert, friendly Happiness team' )
-				: i18n.translate( '24/7 priority support' ),
+			i18n.translate( 'The fastest 24/7 support from our expert, friendly Happiness team' ),
 	},
 	/* END: 2023 Pricing Grid Features */
 
@@ -2470,13 +2488,17 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_GIFT_CARDS ]: {
 		getSlug: () => FEATURE_GIFT_CARDS,
-		getTitle: () => i18n.translate( 'Gift cards' ),
-		getDescription: () => '',
+		getTitle: () => i18n.translate( 'Gift Cards' ),
+		getDescription: () =>
+			i18n.translate( 'Offer multi-purpose gift cards that customers can redeem online.' ),
 	},
 	[ FEATURE_PRODUCT_BUNDLES ]: {
 		getSlug: () => FEATURE_PRODUCT_BUNDLES,
-		getTitle: () => i18n.translate( 'Product bundles' ),
-		getDescription: () => '',
+		getTitle: () => i18n.translate( 'Product Bundles' ),
+		getDescription: () =>
+			i18n.translate(
+				'Combine products in bundles. Offer discount packages and create product kits and curated lists of products that are bought together often.'
+			),
 	},
 	[ FEATURE_CUSTOM_PRODUCT_KITS ]: {
 		getSlug: () => FEATURE_CUSTOM_PRODUCT_KITS,
@@ -2490,8 +2512,11 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_PRODUCT_RECOMMENDATIONS ]: {
 		getSlug: () => FEATURE_PRODUCT_RECOMMENDATIONS,
-		getTitle: () => i18n.translate( 'Product recommendations' ),
-		getDescription: () => '',
+		getTitle: () => i18n.translate( 'Product Recommendations' ),
+		getDescription: () =>
+			i18n.translate(
+				'Offer smart upsells, cross-sells, and “frequently bought together” recommendations and measure their impact with in-depth analytics.'
+			),
 	},
 	[ FEATURE_INTEGRATED_PAYMENTS ]: {
 		getSlug: () => FEATURE_INTEGRATED_PAYMENTS,
@@ -2589,7 +2614,7 @@ const FEATURES_LIST: FeatureList = {
 	},
 	[ FEATURE_SENSEI_SELL_COURSES ]: {
 		getSlug: () => FEATURE_SENSEI_SELL_COURSES,
-		getTitle: () => i18n.translate( 'Sell courses and subscriptions' ),
+		getTitle: () => i18n.translate( 'Sell courses' ),
 	},
 	[ FEATURE_SENSEI_STORAGE ]: {
 		getSlug: () => FEATURE_SENSEI_STORAGE,
@@ -2604,6 +2629,79 @@ const FEATURES_LIST: FeatureList = {
 		getTitle: () => i18n.translate( 'Advanced Jetpack features' ),
 	},
 	/* END: Sensei Features */
+
+	[ FEATURE_UNLIMITED_ENTITIES ]: {
+		getSlug: () => FEATURE_UNLIMITED_ENTITIES,
+		getTitle: () => i18n.translate( 'Unlimited pages, posts, users, and visitors' ),
+	},
+	[ FEATURE_WOO_THEMES ]: {
+		getSlug: () => FEATURE_WOO_THEMES,
+		getTitle: () => i18n.translate( '3 bundled premium WooCommerce themes' ),
+	},
+	[ FEATURE_WOO_SOCIAL_MEDIA_INTEGRATIONS ]: {
+		getSlug: () => FEATURE_WOO_SOCIAL_MEDIA_INTEGRATIONS,
+		getTitle: () => i18n.translate( 'Social media integrations' ),
+		getDescription: () =>
+			i18n.translate(
+				'Be visible and let your customers connect with your brand on social media channels.'
+			),
+	},
+	[ FEATURE_WOO_PAYMENTS ]: {
+		getSlug: () => FEATURE_WOO_PAYMENTS,
+		getTitle: () => i18n.translate( 'WooCommerce Payments' ),
+		getDescription: () =>
+			i18n.translate(
+				'Accept online payments, track revenue, and handle all payment activity from your store’s dashboard.'
+			),
+	},
+	[ FEATURE_WOO_SHIPPING_TRACKING ]: {
+		getSlug: () => FEATURE_WOO_SHIPPING_TRACKING,
+		getTitle: () => i18n.translate( 'Shipping & tracking' ),
+		getDescription: () => i18n.translate( 'Integrations with top shipping carriers.' ),
+	},
+	[ FEATURE_WOO_TAX_SOLUTIONS ]: {
+		getSlug: () => FEATURE_WOO_TAX_SOLUTIONS,
+		getTitle: () => i18n.translate( 'Tax solutions - Avalara & EU VAT' ),
+		getDescription: () => i18n.translate( 'Automate your tax calculations.' ),
+	},
+	[ FEATURE_WOO_BRANDS ]: {
+		getSlug: () => FEATURE_WOO_BRANDS,
+		getTitle: () => i18n.translate( 'WooCommerce Brands' ),
+		getDescription: () =>
+			i18n.translate(
+				'Assign your products to brands and make it easier for your customers to browse your catalog by brand.'
+			),
+	},
+	[ FEATURE_WOO_AUTOMATE ]: {
+		getSlug: () => FEATURE_WOO_AUTOMATE,
+		getTitle: () => i18n.translate( 'AutomateWoo' ),
+		getDescription: () =>
+			i18n.translate(
+				'Create a near-endless range of automated workflows to help you grow your store, including different combinations of triggers, rules, and actions.'
+			),
+	},
+	[ FEATURE_GOOGLE_LISTING_ADS ]: {
+		getSlug: () => FEATURE_GOOGLE_LISTING_ADS,
+		getTitle: () => i18n.translate( 'Google Listings & Ads' ),
+		getDescription: () =>
+			i18n.translate(
+				'Create free listings and ads to showcase your products to shoppers across Google.'
+			),
+	},
+	[ FEATURE_CONNECT_ANALYTICS ]: {
+		getSlug: () => FEATURE_CONNECT_ANALYTICS,
+		getTitle: () => i18n.translate( 'Connect Google Analytics and Cloudflare Web Analytics' ),
+		getDescription: () =>
+			i18n.translate(
+				'Link your accounts to gain more valuable insights in seconds. No coding required.'
+			),
+	},
+	[ FEATURE_LIMITED_SITE_ACTIVITY_LOG ]: {
+		getSlug: () => FEATURE_LIMITED_SITE_ACTIVITY_LOG,
+		getTitle: () => i18n.translate( 'Limited site activity log' ),
+		getDescription: () =>
+			i18n.translate( 'Keep an administrative eye on activity across your site.' ),
+	},
 };
 
 export { FEATURES_LIST };

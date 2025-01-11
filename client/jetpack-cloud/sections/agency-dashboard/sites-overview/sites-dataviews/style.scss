@@ -21,10 +21,6 @@
 		color: var(--studio-jetpack-green-50);
 	}
 
-	.dataviews-view-table__actions-column {
-		display: none;
-	}
-
 	thead {
 		th.sites-dataviews__site {
 			background: var(--studio-white);
@@ -183,7 +179,7 @@
 	}
 }
 
-.dataviews-pagination {
+.sites-dashboard__layout .dataviews-pagination {
 	background: #fff;
 	border-top: 1px solid #f1f1f1;
 	border-bottom-left-radius: 4px;

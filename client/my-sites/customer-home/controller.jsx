@@ -1,7 +1,9 @@
 import page from '@automattic/calypso-router';
 import { fetchLaunchpad } from '@automattic/data-stores';
 import { areLaunchpadTasksCompleted } from 'calypso/landing/stepper/declarative-flow/internals/steps-repository/launchpad/task-helper';
+import { isRemovedFlow } from 'calypso/landing/stepper/utils/flow-redirect-handler';
 import { getQueryArgs } from 'calypso/lib/query-args';
+import { bumpStat } from 'calypso/state/analytics/actions';
 import { fetchModuleList } from 'calypso/state/jetpack/modules/actions';
 import { fetchSitePlugins } from 'calypso/state/plugins/installed/actions';
 import { getPluginOnSite } from 'calypso/state/plugins/installed/selectors';
@@ -39,7 +41,7 @@ export async function maybeRedirect( context, next ) {
 		return;
 	}
 
-	const { verified, courseSlug } = getQueryArgs() || {};
+	const { verified, courseSlug, from } = getQueryArgs() || {};
 
 	// The courseSlug is to display pages with onboarding videos for learning,
 	// so we should not redirect the page to launchpad.
@@ -67,15 +69,28 @@ export async function maybeRedirect( context, next ) {
 			checklist: launchpadChecklist,
 		} = await fetchLaunchpad( slug );
 
+		const shouldShowLaunchpad = ! isRemovedFlow( siteIntentOption );
+
 		if (
+			shouldShowLaunchpad &&
 			launchpadScreenOption === 'full' &&
 			! areLaunchpadTasksCompleted( launchpadChecklist, isSiteLaunched )
 		) {
-			// The new stepper launchpad onboarding flow isn't registered within the "page"
-			// client-side router, so page.redirect won't work. We need to use the
-			// traditional window.location Web API.
-			redirectToLaunchpad( slug, siteIntentOption, verified );
-			return;
+			if ( from === 'full-launchpad' ) {
+				// A guard to prevent infinite loops (#98122)
+				context.store.dispatch(
+					bumpStat(
+						'calypso_customer_home_launchpad_infinite_loop_guard',
+						site?.launch_status ?? 'null'
+					)
+				);
+			} else {
+				// The new stepper launchpad onboarding flow isn't registered within the "page"
+				// client-side router, so page.redirect won't work. We need to use the
+				// traditional window.location Web API.
+				redirectToLaunchpad( slug, siteIntentOption, verified );
+				return;
+			}
 		}
 	} catch ( error ) {}
 

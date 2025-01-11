@@ -4,6 +4,7 @@ import { initializeAnalytics } from '@automattic/calypso-analytics';
 import { CurrentUser } from '@automattic/calypso-analytics/dist/types/utils/current-user';
 import config from '@automattic/calypso-config';
 import { User as UserStore } from '@automattic/data-stores';
+import { geolocateCurrencySymbol } from '@automattic/format-currency';
 import {
 	HOSTED_SITE_MIGRATION_FLOW,
 	MIGRATION_FLOW,
@@ -15,14 +16,14 @@ import { useDispatch } from '@wordpress/data';
 import defaultCalypsoI18n from 'i18n-calypso';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { BrowserRouter, matchPath } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { requestAllBlogsAccess } from 'wpcom-proxy-request';
-import { setupErrorLogger } from 'calypso/boot/common';
 import { setupLocale } from 'calypso/boot/locale';
 import AsyncLoad from 'calypso/components/async-load';
 import CalypsoI18nProvider from 'calypso/components/calypso-i18n-provider';
 import { addHotJarScript } from 'calypso/lib/analytics/hotjar';
 import getSuperProps from 'calypso/lib/analytics/super-props';
+import { setupErrorLogger } from 'calypso/lib/error-logger/setup-error-logger';
 import { initializeCurrentUser } from 'calypso/lib/user/shared-utils';
 import { onDisablePersistence } from 'calypso/lib/user/store';
 import { createReduxStore } from 'calypso/state';
@@ -41,6 +42,8 @@ import availableFlows from './declarative-flow/registered-flows';
 import { USER_STORE } from './stores';
 import { setupWpDataDebug } from './utils/devtools';
 import { enhanceFlowWithAuth } from './utils/enhanceFlowWithAuth';
+import redirectPathIfNecessary from './utils/flow-redirect-handler';
+import { getFlowFromURL } from './utils/get-flow-from-url';
 import { startStepperPerformanceTracking } from './utils/performance-tracking';
 import { WindowLocaleEffectManager } from './utils/window-locale-effect-manager';
 import type { Flow } from './declarative-flow/internals/types';
@@ -77,11 +80,9 @@ interface AppWindow extends Window {
 
 const DEFAULT_FLOW = 'site-setup';
 
-const getFlowFromURL = () => {
-	const fromPath = matchPath( { path: '/setup/:flow/*' }, window.location.pathname )?.params?.flow;
-	// backward support the old Stepper URL structure (?flow=something)
-	const fromQuery = new URLSearchParams( window.location.search ).get( 'flow' );
-	return fromPath || fromQuery;
+const getSiteIdFromURL = () => {
+	const siteId = new URLSearchParams( window.location.search ).get( 'siteId' );
+	return siteId ? Number( siteId ) : null;
 };
 
 const HOTJAR_ENABLED_FLOWS = [
@@ -98,7 +99,15 @@ const initializeHotJar = ( flowName: string ) => {
 };
 
 window.AppBoot = async () => {
+	const { pathname, search } = window.location;
+
+	// Before proceeding we redirect the user if necessary.
+	if ( redirectPathIfNecessary( pathname, search ) ) {
+		return null;
+	}
+
 	const flowName = getFlowFromURL();
+	const siteId = getSiteIdFromURL();
 
 	if ( ! flowName ) {
 		// Stop the boot process if we can't determine the flow, reducing the number of edge cases
@@ -141,8 +150,10 @@ window.AppBoot = async () => {
 
 	// When re-using steps from /start, we need to set the current flow name in the redux store, since some depend on it.
 	reduxStore.dispatch( setCurrentFlowName( flow.name ) );
-	// Reset the selected site ID when the stepper is loaded.
-	reduxStore.dispatch( setSelectedSiteId( null ) as unknown as AnyAction );
+	reduxStore.dispatch( setSelectedSiteId( siteId ) as unknown as AnyAction );
+
+	// No need to await this, it's not critical to the boot process and will slow booting down.
+	geolocateCurrencySymbol();
 
 	const root = createRoot( document.getElementById( 'wpcom' ) as HTMLElement );
 

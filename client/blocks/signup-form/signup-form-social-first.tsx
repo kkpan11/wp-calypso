@@ -9,7 +9,7 @@ import { isExistingAccountError } from 'calypso/lib/signup/is-existing-account-e
 import { addQueryArgs } from 'calypso/lib/url';
 import { useSelector } from 'calypso/state';
 import { getCurrentOAuth2Client } from 'calypso/state/oauth2-clients/ui/selectors';
-import isWooCommerceCoreProfilerFlow from 'calypso/state/selectors/is-woocommerce-core-profiler-flow';
+import isWooPasswordlessJPCFlow from 'calypso/state/selectors/is-woo-passwordless-jpc-flow';
 import PasswordlessSignupForm from './passwordless';
 import SocialSignupForm from './social';
 import './style.scss';
@@ -35,6 +35,7 @@ interface SignupFormSocialFirst {
 			extra: { first_name: string; last_name: string; username_hint: string };
 		} | null
 	) => void;
+	onCreateAccountSuccess?: ( data: AccountCreateReturn ) => void;
 	queryArgs: QueryArgs;
 	userEmail: string;
 	notice: JSX.Element | false;
@@ -69,6 +70,7 @@ const SignupFormSocialFirst = ( {
 	logInUrl,
 	socialServiceResponse,
 	handleSocialResponse,
+	onCreateAccountSuccess,
 	queryArgs,
 	userEmail,
 	notice,
@@ -78,8 +80,8 @@ const SignupFormSocialFirst = ( {
 	const [ currentStep, setCurrentStep ] = useState( 'initial' );
 	const { __ } = useI18n();
 	const oauth2Client = useSelector( getCurrentOAuth2Client );
-	const isWooCoreProfilerFlow = useSelector( isWooCommerceCoreProfilerFlow );
-	const isWoo = isWooOAuth2Client( oauth2Client ) || isWooCoreProfilerFlow;
+	const isWooPasswordlessJPC = useSelector( isWooPasswordlessJPCFlow );
+	const isWoo = isWooOAuth2Client( oauth2Client ) || isWooPasswordlessJPC;
 	const isGravatar = isGravatarOAuth2Client( oauth2Client );
 
 	const renderTermsOfService = () => {
@@ -175,6 +177,7 @@ const SignupFormSocialFirst = ( {
 								);
 							}
 						} }
+						onCreateAccountSuccess={ onCreateAccountSuccess }
 						{ ...gravatarProps }
 					/>
 					<Button

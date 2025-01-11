@@ -1,65 +1,105 @@
-import { getPlan, PLAN_BUSINESS } from '@automattic/calypso-products';
+import { getPlan, isWpComBusinessPlan, PLAN_BUSINESS } from '@automattic/calypso-products';
 import { BadgeType } from '@automattic/components';
 import { StepContainer } from '@automattic/onboarding';
+import { canInstallPlugins } from '@automattic/sites';
 import { getQueryArg } from '@wordpress/url';
 import { useTranslate } from 'i18n-calypso';
 import DocumentHead from 'calypso/components/data/document-head';
 import FormattedHeader from 'calypso/components/formatted-header';
+import { useMigrationCancellation } from 'calypso/data/site-migration/landing/use-migration-cancellation';
 import { useMigrationStickerMutation } from 'calypso/data/site-migration/use-migration-sticker';
 import { useHostingProviderUrlDetails } from 'calypso/data/site-profiler/use-hosting-provider-url-details';
 import { useSite } from 'calypso/landing/stepper/hooks/use-site';
 import { recordTracksEvent } from 'calypso/lib/analytics/tracks';
+import { useMigrationExperiment } from '../../hooks/use-migration-experiment';
 import FlowCard from '../components/flow-card';
 import type { Step } from '../../types';
 import './style.scss';
 
-const SiteMigrationImportOrMigrate: Step = function ( { navigation } ) {
+const SiteMigrationImportOrMigrate: Step = function ( { navigation, flow } ) {
 	const translate = useTranslate();
 	const site = useSite();
 	const importSiteQueryParam = getQueryArg( window.location.href, 'from' )?.toString() || '';
 	const { deleteMigrationSticker } = useMigrationStickerMutation();
+	const { mutate: cancelMigration } = useMigrationCancellation( site?.ID );
 
-	const options = [
-		{
-			label: translate( 'Migrate site' ),
-			description: translate(
-				"All your site's content, themes, plugins, users and customizations."
-			),
-			value: 'migrate',
-			badge: {
-				type: 'info-blue' as BadgeType,
-				// translators: %(planName)s is a plan name (e.g. Commerce plan).
-				text: translate( 'Requires %(planName)s plan', {
+	const isBusinessPlan = site?.plan?.product_slug
+		? isWpComBusinessPlan( site?.plan?.product_slug )
+		: false;
+
+	let options;
+
+	const isMigrationExperimentEnabled = useMigrationExperiment( flow );
+
+	if ( isMigrationExperimentEnabled ) {
+		const badgeText = isBusinessPlan
+			? translate( 'Included with your plan' )
+			: // translators: %(planName)s is a plan name (e.g. Commerce plan).
+			  ( translate( 'Available on %(planName)s with 50% off', {
 					args: { planName: getPlan( PLAN_BUSINESS )?.getTitle() ?? '' },
-				} ) as string,
+			  } ) as string );
+
+		options = [
+			{
+				label: translate( 'Migrate site' ),
+				description: translate(
+					"Best for WordPress sites. Seamlessly move all your site's content, themes, plugins, users, and customizations to WordPress.com."
+				),
+				value: 'migrate',
+				badge: {
+					type: 'info-blue' as BadgeType,
+					text: badgeText,
+				},
+				selected: true,
 			},
-			selected: true,
-		},
-		{
-			label: translate( 'Import content only' ),
-			description: translate( 'Import just posts, pages, comments and media.' ),
-			value: 'import',
-		},
-	];
+			{
+				label: translate( 'Import content only' ),
+				description: translate( 'Import posts, pages, comments, and media only.' ),
+				value: 'import',
+			},
+		];
+	} else {
+		options = [
+			{
+				label: translate( 'Migrate site' ),
+				description: translate(
+					"All your site's content, themes, plugins, users and customizations."
+				),
+				value: 'migrate',
+				badge: {
+					type: 'info-blue' as BadgeType,
+					// translators: %(planName)s is a plan name (e.g. Commerce plan).
+					text: translate( 'Requires %(planName)s plan', {
+						args: { planName: getPlan( PLAN_BUSINESS )?.getTitle() ?? '' },
+					} ) as string,
+				},
+				selected: true,
+			},
+			{
+				label: translate( 'Import content only' ),
+				description: translate( 'Import just posts, pages, comments and media.' ),
+				value: 'import',
+			},
+		];
+	}
 
 	const { data: hostingProviderDetails } = useHostingProviderUrlDetails( importSiteQueryParam );
 	const hostingProviderName = hostingProviderDetails.name;
 	const shouldDisplayHostIdentificationMessage =
 		! hostingProviderDetails.is_unknown && ! hostingProviderDetails.is_a8c;
 
-	const canInstallPlugins = site?.plan?.features?.active.find(
-		( feature ) => feature === 'install-plugins'
-	)
-		? true
-		: false;
+	const siteCanInstallPlugins = canInstallPlugins( site );
 
 	const handleClick = ( destination: string ) => {
-		if ( destination === 'migrate' && ! canInstallPlugins ) {
+		if ( destination === 'migrate' && ! siteCanInstallPlugins ) {
 			return navigation.submit?.( { destination: 'upgrade' } );
 		}
 
 		if ( destination === 'import' && site && site.ID ) {
+			//TODO: This is a temporary solution to delete the migration sticker and the migration flow.
+			// We should refactor this to use a single endpoint to handle both operations.
 			deleteMigrationSticker( site.ID );
+			cancelMigration();
 		}
 
 		return navigation.submit?.( { destination } );

@@ -6,7 +6,8 @@ import { Icon, external } from '@wordpress/icons';
 import { getQueryArg, removeQueryArgs } from '@wordpress/url';
 import clsx from 'clsx';
 import { useTranslate } from 'i18n-calypso';
-import { useCallback, useEffect, useState, useContext } from 'react';
+import { useCallback, useEffect, useState, useContext, useRef } from 'react';
+import A4APopover from 'calypso/a8c-for-agencies/components/a4a-popover';
 import { A4A_SITES_LINK_NEEDS_SETUP } from 'calypso/a8c-for-agencies/components/sidebar-menu/lib/constants';
 import {
 	isPressableHostingProduct,
@@ -23,6 +24,7 @@ import {
 } from 'calypso/jetpack-cloud/sections/partner-portal/types';
 import { addQueryArgs } from 'calypso/lib/url';
 import { useDispatch, useSelector } from 'calypso/state';
+import { isAgencyOwner } from 'calypso/state/a8c-for-agencies/agency/selectors';
 import { recordTracksEvent } from 'calypso/state/analytics/actions';
 import { infoNotice, errorNotice } from 'calypso/state/notices/actions';
 import { getSite } from 'calypso/state/sites/selectors';
@@ -33,40 +35,38 @@ import LicensesOverviewContext from '../licenses-overview/context';
 import LicenseActions from './license-actions';
 import LicenseBundleDropDown from './license-bundle-dropdown';
 import type { ReferralAPIResponse } from 'calypso/a8c-for-agencies/sections/referrals/types';
+import type { License, LicenseMeta } from 'calypso/state/partner-portal/types';
 
 import './style.scss';
 
 interface Props {
-	licenseKey: string;
-	product: string;
-	blogId: number | null;
-	siteUrl: string | null;
-	hasDownloads: boolean;
-	issuedAt: string;
-	attachedAt: string | null;
-	revokedAt: string | null;
+	license: License;
 	licenseType: LicenseType;
 	parentLicenseId?: number | null;
+	productName: string;
 	quantity?: number | null;
 	isChildLicense?: boolean;
+	meta?: LicenseMeta;
 	referral?: ReferralAPIResponse | null;
 }
 
 export default function LicensePreview( {
-	licenseKey,
-	blogId,
-	product,
-	siteUrl,
-	hasDownloads,
-	issuedAt,
-	attachedAt,
-	revokedAt,
+	license,
 	licenseType,
 	parentLicenseId,
+	productName,
 	quantity,
 	isChildLicense,
+	meta,
 	referral,
 }: Props ) {
+	const licenseKey = license.licenseKey;
+	const blogId = license.blogId;
+	const siteUrl = license.siteUrl;
+	const issuedAt = license.issuedAt;
+	const attachedAt = license.attachedAt;
+	const revokedAt = license.revokedAt;
+
 	const translate = useTranslate();
 	const dispatch = useDispatch();
 
@@ -76,6 +76,8 @@ export default function LicensePreview( {
 	const isPressableLicense = isPressableHostingProduct( licenseKey );
 	const isWPCOMLicense = isWPCOMHostingProduct( licenseKey );
 	const pressableManageUrl = 'https://my.pressable.com/agency/auth';
+
+	const isOwner = useSelector( isAgencyOwner );
 
 	const { filter } = useContext( LicensesOverviewContext );
 
@@ -97,11 +99,13 @@ export default function LicensePreview( {
 	const licenseState = getLicenseState( attachedAt, revokedAt );
 	const domain = siteUrl && ! isPressableLicense ? getUrlParts( siteUrl ).hostname || siteUrl : '';
 
+	const isClientLicense = isAutomatedReferralsEnabled && referral;
+
 	const assign = useCallback( () => {
 		const redirectUrl = isWPCOMLicense
 			? A4A_SITES_LINK_NEEDS_SETUP
 			: addQueryArgs( { key: licenseKey }, '/marketplace/assign-license' );
-		if ( paymentMethodRequired ) {
+		if ( paymentMethodRequired && ! isClientLicense ) {
 			const noticeLinkHref = addQueryArgs(
 				{
 					return: redirectUrl,
@@ -124,7 +128,7 @@ export default function LicensePreview( {
 		}
 
 		page.redirect( redirectUrl );
-	}, [ isWPCOMLicense, licenseKey, paymentMethodRequired, translate, dispatch ] );
+	}, [ isWPCOMLicense, licenseKey, paymentMethodRequired, isClientLicense, translate, dispatch ] );
 
 	useEffect( () => {
 		if ( isHighlighted ) {
@@ -149,11 +153,87 @@ export default function LicensePreview( {
 		</Badge>
 	);
 
+	const shouldShowTransferredBadge = () => {
+		const transferredDate = meta?.transferredSubscriptionExpiration;
+
+		if ( ! transferredDate ) {
+			return false;
+		}
+
+		// Only show the badge from now until 60 days after the transferred date.
+		const sixtyDaysAfter = new Date( transferredDate );
+		sixtyDaysAfter.setDate( sixtyDaysAfter.getDate() + 60 );
+		return new Date() < sixtyDaysAfter;
+	};
+
+	const TransferredBadge = () => {
+		const [ showPopover, setShowPopover ] = useState( false );
+		const wrapperRef = useRef< HTMLSpanElement | null >( null );
+
+		return (
+			<span
+				className="license-preview__migration-wrapper"
+				onClick={ () => setShowPopover( true ) }
+				role="button"
+				tabIndex={ 0 }
+				ref={ wrapperRef }
+				onKeyDown={ ( event ) => {
+					if ( event.key === 'Enter' ) {
+						setShowPopover( true );
+					}
+				} }
+			>
+				<Badge className="license-preview__migration-badge" type="info-green">
+					{ translate( 'Transferred' ) }
+				</Badge>
+				{ showPopover && (
+					<A4APopover
+						title=""
+						offset={ 12 }
+						wrapperRef={ wrapperRef }
+						onFocusOutside={ () => setShowPopover( false ) }
+					>
+						<div className="license-preview__migration-content">
+							{ translate(
+								"Your plan is now with Automattic for Agencies. You won't be billed until {{bold}}%(date)s{{/bold}}.{{br/}}{{a}}Learn about billing for transferred sites{{icon/}}{{/a}}",
+								{
+									components: {
+										bold: <strong />,
+										br: <br />,
+										a: (
+											<a
+												href="https://agencieshelp.automattic.com/knowledge-base/moving-existing-wordpress-com-plans-into-the-automattic-for-agencies-billing-system/"
+												target="_blank"
+												rel="noreferrer noopener"
+											/>
+										),
+										icon: (
+											<Gridicon
+												icon="external"
+												size={ 16 }
+												className="license-preview__migration-external-icon"
+											/>
+										),
+									},
+									args: {
+										date: meta?.transferredSubscriptionExpiration ?? '',
+									},
+								}
+							) }
+						</div>
+					</A4APopover>
+				) }
+			</span>
+		);
+	};
+
 	// TODO: We are removing Creator's product name in the frontend because we want to leave it in the backend for the time being,
 	//       We have to refactor this once we have updates. Context: p1714663834375719-slack-C06JY8QL0TU
 	const productTitle = licenseKey.startsWith( 'wpcom-hosting-business' )
 		? translate( 'WordPress.com Site' )
-		: product;
+		: productName;
+
+	const isDevelopmentSite = Boolean( meta?.isDevSite );
 
 	return (
 		<div
@@ -172,8 +252,15 @@ export default function LicensePreview( {
 			>
 				<div>
 					<span className="license-preview__product">
-						{ productTitle }
-						{ isAutomatedReferralsEnabled && referral && (
+						<div className="license-preview__product-title">
+							{ productTitle }
+							{ isClientLicense && (
+								<Badge className="license-preview__client-badge" type="info">
+									{ translate( 'Referral' ) }
+								</Badge>
+							) }
+						</div>
+						{ isClientLicense && (
 							<div className="license-preview__client-email">
 								<ClientSite referral={ referral } />
 							</div>
@@ -185,24 +272,28 @@ export default function LicensePreview( {
 					{ quantity ? (
 						<div className="license-preview__bundle">
 							<Gridicon icon="minus" className="license-preview__no-value" />
-							<div className="license-preview__product-small">{ product }</div>
+							<div className="license-preview__product-small">{ productName }</div>
 							<div>{ bundleCountContent }</div>
 						</div>
 					) : (
 						<>
-							<div className="license-preview__product-small">{ product }</div>
+							<div className="license-preview__product-small">{ productName }</div>
 							{ domain }
-							{ isPressableLicense && ! revokedAt && (
-								<a
-									className="license-preview__product-pressable-link"
-									target="_blank"
-									rel="norefferer noopener noreferrer"
-									href={ pressableManageUrl }
-								>
-									{ translate( 'Manage in Pressable' ) }
-									<Icon className="gridicon" icon={ external } size={ 18 } />
-								</a>
-							) }
+							{ isPressableLicense &&
+								! revokedAt &&
+								( isOwner ? (
+									<a
+										className="license-preview__product-pressable-link"
+										target="_blank"
+										rel="norefferer noopener noreferrer"
+										href={ pressableManageUrl }
+									>
+										{ translate( 'Manage in Pressable' ) }
+										<Icon className="gridicon" icon={ external } size={ 18 } />
+									</a>
+								) : (
+									translate( 'Managed by agency owner' )
+								) ) }
 							{ ! domain && licenseState === LicenseState.Detached && (
 								<span className="license-preview__unassigned">
 									<Badge type="warning">{ translate( 'Unassigned' ) }</Badge>
@@ -267,12 +358,14 @@ export default function LicensePreview( {
 
 				<div className="license-preview__badge-container">
 					{ !! isParentLicense && bundleCountContent }
+					{ isDevelopmentSite && <Badge type="info-purple">{ translate( 'Development' ) }</Badge> }
+					{ shouldShowTransferredBadge() && <TransferredBadge /> }
 				</div>
 
 				<div>
 					{ !! isParentLicense && ! revokedAt && (
 						<LicenseBundleDropDown
-							product={ product }
+							product={ productName }
 							licenseKey={ licenseKey }
 							bundleSize={ quantity }
 						/>
@@ -280,15 +373,22 @@ export default function LicensePreview( {
 					{ isWPCOMLicense && isSiteAtomic ? (
 						<LicenseActions
 							siteUrl={ siteUrl }
+							isDevSite={ isDevelopmentSite }
 							attachedAt={ attachedAt }
 							revokedAt={ revokedAt }
 							licenseType={ licenseType }
 							isChildLicense={ isChildLicense }
 						/>
 					) : (
-						<Button onClick={ open } className="license-preview__toggle" borderless>
-							<Gridicon icon={ isOpen ? 'chevron-up' : 'chevron-down' } />
-						</Button>
+						/*
+						 * For all pressable licenses, only the owner has access to the action,
+						 * so only show the actions if you are the owner or if this is not a pressable license.
+						 */
+						( isOwner || ! isPressableLicense ) && (
+							<Button onClick={ open } className="license-preview__toggle" borderless>
+								<Gridicon icon={ isOpen ? 'chevron-up' : 'chevron-down' } />
+							</Button>
+						)
 					) }
 				</div>
 			</LicenseListItem>
@@ -298,14 +398,7 @@ export default function LicensePreview( {
 					<BundleDetails parentLicenseId={ parentLicenseId } />
 				) : (
 					<LicenseDetails
-						licenseKey={ licenseKey }
-						product={ product }
-						siteUrl={ siteUrl }
-						blogId={ blogId }
-						hasDownloads={ hasDownloads }
-						issuedAt={ issuedAt }
-						attachedAt={ attachedAt }
-						revokedAt={ revokedAt }
+						license={ license }
 						onCopyLicense={ onCopyLicense }
 						licenseType={ licenseType }
 						isChildLicense={ isChildLicense }

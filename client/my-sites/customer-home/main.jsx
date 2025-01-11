@@ -2,7 +2,6 @@ import { Button } from '@automattic/components';
 import { localizeUrl } from '@automattic/i18n-utils';
 import { SET_UP_EMAIL_AUTHENTICATION_FOR_YOUR_DOMAIN } from '@automattic/urls';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink } from '@wordpress/components';
 import { useTranslate } from 'i18n-calypso';
 import { useEffect, useState } from 'react';
 import { connect, useSelector } from 'react-redux';
@@ -65,6 +64,7 @@ const Home = ( {
 	site,
 	siteId,
 	trackViewSiteAction,
+	trackStudioSyncConnectSite,
 	isSiteWooExpressEcommerceTrial,
 	ssoModuleActive,
 	fetchingJetpackModules,
@@ -125,6 +125,16 @@ const Home = ( {
 		}
 	}, [ emailDnsDiagnostics ] );
 
+	useEffect( () => {
+		const studioSiteId = getQueryArgs().studioSiteId;
+		if ( ! studioSiteId ) {
+			return;
+		}
+		const studioSiteUrl = `wpcom-local-dev://sync-connect-site?studioSiteId=${ studioSiteId }&remoteSiteId=${ siteId }`;
+		trackStudioSyncConnectSite( false );
+		window.location.href = studioSiteUrl;
+	}, [ siteId, trackStudioSyncConnectSite ] );
+
 	const isFirstSecondaryCardInPrimaryLocation =
 		Array.isArray( layout?.primary ) &&
 		layout.primary.length === 0 &&
@@ -153,7 +163,7 @@ const Home = ( {
 
 	const headerActions = (
 		<>
-			<Button href={ site.URL } onClick={ trackViewSiteAction } target="_blank">
+			<Button href={ site.URL } onClick={ trackViewSiteAction }>
 				{ translate( 'View site' ) }
 			</Button>
 			{ isAdmin && ! isP2 && (
@@ -179,13 +189,13 @@ const Home = ( {
 				<SiteIcon site={ site } size={ 58 } />
 				<div className="customer-home__site-info">
 					<div className="customer-home__site-title">{ site.name }</div>
-					<ExternalLink
+					<a
 						href={ site.URL }
 						className="customer-home__site-domain"
 						onClick={ trackViewSiteAction }
 					>
 						<span className="customer-home__site-domain-text">{ site.domain }</span>
-					</ExternalLink>
+					</a>
 				</div>
 			</div>
 		</div>
@@ -254,6 +264,32 @@ const Home = ( {
 		);
 	};
 
+	const renderStudioSyncNotice = () => {
+		const studioSiteId = getQueryArgs().studioSiteId;
+		if ( ! studioSiteId ) {
+			return null;
+		}
+		const studioSiteUrl = `wpcom-local-dev://sync-connect-site?studioSiteId=${ studioSiteId }&remoteSiteId=${ siteId }`;
+
+		return (
+			<Notice
+				text={ translate( 'Connect to your Studio site to start syncing.' ) }
+				icon="sync"
+				showDismiss={ false }
+				status="is-info"
+			>
+				<NoticeAction
+					onClick={ () => {
+						trackStudioSyncConnectSite( true );
+						window.location.href = studioSiteUrl;
+					} }
+				>
+					{ translate( 'Connect Studio' ) }
+				</NoticeAction>
+			</Notice>
+		);
+	};
+
 	return (
 		<Main wideLayout className="customer-home__main">
 			<PageViewTracker path="/home/:site" title={ translate( 'My Home' ) } />
@@ -272,6 +308,7 @@ const Home = ( {
 				/>
 			) : null }
 
+			{ renderStudioSyncNotice() }
 			{ renderUnverifiedEmailNotice() }
 			{ renderDnsSettingsDiagnosticNotice() }
 
@@ -337,8 +374,14 @@ const trackViewSiteAction = ( isStaticHomePage ) =>
 		bumpStat( 'calypso_customer_home', 'my_site_view_site' )
 	);
 
+const trackStudioSyncConnectSite = ( click = false ) =>
+	recordTracksEvent( 'calypso_studio_sync_connect_site', {
+		click,
+	} );
+
 const mapDispatchToProps = {
 	trackViewSiteAction,
+	trackStudioSyncConnectSite,
 	verifyIcannEmail,
 };
 
@@ -348,6 +391,7 @@ const mergeProps = ( stateProps, dispatchProps, ownProps ) => {
 		...ownProps,
 		...stateProps,
 		trackViewSiteAction: () => dispatchProps.trackViewSiteAction( isStaticHomePage ),
+		trackStudioSyncConnectSite: dispatchProps.trackStudioSyncConnectSite,
 		handleVerifyIcannEmail: dispatchProps.verifyIcannEmail,
 	};
 };

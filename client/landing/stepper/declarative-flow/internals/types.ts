@@ -101,8 +101,7 @@ export type UseStepsHook = () => StepperStep[];
 
 export type UseStepNavigationHook< FlowSteps extends StepperStep[] > = (
 	currentStepSlug: FlowSteps[ number ][ 'slug' ],
-	navigate: Navigate< FlowSteps >,
-	steps?: FlowSteps[ number ][ 'slug' ][]
+	navigate: Navigate< FlowSteps >
 ) => NavigationControls;
 
 export type UseAssertConditionsHook< FlowSteps extends StepperStep[] > = (
@@ -119,7 +118,13 @@ export type UseSideEffectHook< FlowSteps extends StepperStep[] > = (
  * Can pass any properties that should be recorded for the respective events.
  */
 export type UseTracksEventPropsHook = () => {
-	[ key in ( typeof STEPPER_TRACKS_EVENTS )[ number ] ]?: Record< string, string | number | null >;
+	/**
+	 * This flag is needed to indicate that the custom props are still loading. And the return value will be ignored until it's false.
+	 */
+	isLoading?: boolean;
+	eventsProperties: Partial<
+		Record< ( typeof STEPPER_TRACKS_EVENTS )[ number ], Record< string, string | number | null > >
+	>;
 };
 
 export type Flow = {
@@ -138,8 +143,6 @@ export type Flow = {
 	 * Required flag to indicate if the flow is a signup flow.
 	 */
 	isSignupFlow: boolean;
-	useSignupStartEventProps?: () => Record< string, string | number >;
-
 	/**
 	 *  You can use this hook to configure the login url.
 	 * @returns An object describing the configuration.

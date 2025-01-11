@@ -44,10 +44,10 @@
 		"@automattic/format-currency": "workspace:^",
 		"@automattic/shopping-cart": "workspace:^",
 		"@emotion/styled": "^11.11.0",
-		"@stripe/stripe-js": "^1.53.0",
-		"@wordpress/data": "^10.2.0",
-		"@wordpress/i18n": "^5.2.0",
-		"@wordpress/react-i18n": "^4.2.0",
+		"@stripe/stripe-js": "^1.54.2",
+		"@wordpress/data": "^10.8.0",
+		"@wordpress/i18n": "^5.8.0",
+		"@wordpress/react-i18n": "^4.8.0",
 		"debug": "^4.3.3",
 		"i18n-calypso": "workspace:^",
 		"prop-types": "^15.7.2"
@@ -56,13 +56,13 @@
 		"@automattic/calypso-typescript-config": "workspace:^",
 		"@testing-library/jest-dom": "^6.4.5",
 		"@testing-library/react": "^15.0.7",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
 		"typescript": "^5.3.3"
 	},
 	"peerDependencies": {
 		"@emotion/react": "^11.4.1",
-		"redux": "^4.2.1"
+		"redux": "^5.0.1"
 	},
 	"private": true
 }

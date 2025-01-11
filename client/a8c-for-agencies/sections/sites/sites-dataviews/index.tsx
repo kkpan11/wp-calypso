@@ -1,9 +1,7 @@
-import { Button, Gridicon, Spinner } from '@automattic/components';
+import { Button, Gridicon } from '@automattic/components';
 import { Icon, starFilled } from '@wordpress/icons';
 import { useTranslate } from 'i18n-calypso';
 import { useCallback, useContext, useMemo, useState } from 'react';
-import ReactDOM from 'react-dom';
-import { GuidedTourStep } from 'calypso/a8c-for-agencies/components/guided-tour-step';
 import { DATAVIEWS_LIST } from 'calypso/a8c-for-agencies/components/items-dashboard/constants';
 import { DataViewsState } from 'calypso/a8c-for-agencies/components/items-dashboard/items-dataviews/interfaces';
 import SiteSetFavorite from 'calypso/a8c-for-agencies/sections/sites/site-set-favorite';
@@ -11,6 +9,7 @@ import SiteSort from 'calypso/a8c-for-agencies/sections/sites/site-sort';
 import SitesDashboardContext from 'calypso/a8c-for-agencies/sections/sites/sites-dashboard-context';
 import SiteDataField from 'calypso/a8c-for-agencies/sections/sites/sites-dataviews/site-data-field';
 import { DataViews } from 'calypso/components/dataviews';
+import { GuidedTourStep } from 'calypso/components/guided-tour/step';
 import useFormattedSites from 'calypso/jetpack-cloud/sections/agency-dashboard/sites-overview/site-content/hooks/use-formatted-sites';
 import SiteStatusContent from 'calypso/jetpack-cloud/sections/agency-dashboard/sites-overview/site-status-content';
 import { JETPACK_MANAGE_ONBOARDING_TOURS_EXAMPLE_SITE } from 'calypso/jetpack-cloud/sections/onboarding-tours/constants';
@@ -425,30 +424,6 @@ const SitesDataViews = ( {
 		],
 		[ translate ]
 	);
-
-	// Until the DataViews package is updated to support the spinner, we need to manually add the (loading) spinner to the table wrapper for now.
-	const SpinnerWrapper = () => {
-		return (
-			<div className="spinner-wrapper">
-				<Spinner />
-			</div>
-		);
-	};
-
-	const dataviewsWrapper = document.getElementsByClassName( 'dataviews-wrapper' )[ 0 ];
-	if ( dataviewsWrapper ) {
-		// Remove any existing spinner if present
-		const existingSpinner = dataviewsWrapper.querySelector( '.spinner-wrapper' );
-		if ( existingSpinner ) {
-			existingSpinner.remove();
-		}
-
-		const spinnerWrapper = dataviewsWrapper.appendChild( document.createElement( 'div' ) );
-		spinnerWrapper.classList.add( 'spinner-wrapper' );
-		// Render the SpinnerWrapper component inside the spinner wrapper
-		ReactDOM.hydrate( <SpinnerWrapper />, spinnerWrapper );
-		//}
-	}
 
 	const urlParams = new URLSearchParams( window.location.search );
 	const isOnboardingTourActive = urlParams.get( 'tour' ) !== null;

@@ -1,3 +1,4 @@
+import config from '@automattic/calypso-config';
 import { addQueryArgs } from '@wordpress/url';
 import { stringify } from 'qs';
 import { ResponseDomain } from './types';
@@ -7,7 +8,8 @@ export const emailManagementAllSitesPrefix = '/email/all';
 export function domainManagementLink(
 	{ domain, type }: Pick< ResponseDomain, 'domain' | 'type' >,
 	siteSlug: string,
-	isAllSitesView: boolean
+	isAllSitesView: boolean,
+	feature?: string
 ) {
 	const viewSlug = domainManagementViewSlug( type );
 
@@ -16,6 +18,21 @@ export function domainManagementLink(
 		// Encodes domain names so addresses with slashes in the path (e.g. used in site redirects) don't break routing.
 		// Note they are encoded twice since page.js decodes the path by default.
 		domain = encodeURIComponent( encodeURIComponent( domain ) );
+	}
+
+	const isAllDomainManagementEnabled = config.isEnabled( 'calypso/all-domain-management' );
+
+	if ( isAllDomainManagementEnabled ) {
+		switch ( feature ) {
+			case 'email-management':
+				return `${ domainManagementAllRoot() }/email/${ domain }/${ siteSlug }`;
+
+			case 'domain-overview':
+			default:
+				return isAllSitesView
+					? `${ domainManagementAllRoot() }/overview/${ domain }/${ siteSlug }`
+					: `/overview/site-domain/domain/${ domain }/${ siteSlug }`;
+		}
 	}
 
 	if ( isAllSitesView ) {
@@ -172,7 +189,7 @@ export function isUnderEmailManagementAll( path: string ) {
 	return path?.startsWith( emailManagementAllSitesPrefix + '/' );
 }
 
-export function domainMagementDNS( siteName: string, domainName: string ) {
+export function domainManagementDNS( siteName: string, domainName: string ) {
 	return domainManagementEditBase( siteName, domainName, 'dns' );
 }
 

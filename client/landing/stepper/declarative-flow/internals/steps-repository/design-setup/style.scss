@@ -1,25 +1,37 @@
 @import "@wordpress/components/build-style/style";
 @import "@automattic/onboarding/styles/mixins";
-@import "@wordpress/base-styles/breakpoints.scss";
-@import "@wordpress/base-styles/mixins.scss";
+@import "@wordpress/base-styles/breakpoints";
+@import "@wordpress/base-styles/mixins";
 
 $gray-100: #101517;
 $gray-60: #50575e;
 $design-button-primary-color: rgb(17, 122, 201);
+$container-padding-small: 20px;
+$container-padding-large: 48px;
 
 .design-setup {
 	.step-container {
-		padding-inline-start: 20px;
-		padding-inline-end: 20px;
+		padding-inline-start: $container-padding-small;
+		padding-inline-end: $container-padding-small;
 		max-width: 1440px;
+
+		@include break-small {
+			padding-inline-start: $container-padding-large;
+			padding-inline-end: $container-padding-large;
+		}
+
+		.setup-container__big-sky-container {
+			position: absolute;
+			top: $container-padding-small;
+			right: $container-padding-small;
+
+			@include break-small {
+				display: none;
+			}
+		}
 
 		.step-container__content {
 			margin-top: 32px;
-		}
-
-		@include break-small {
-			padding-inline-start: 48px;
-			padding-inline-end: 48px;
 		}
 	}
 
@@ -643,11 +655,6 @@ $design-button-primary-color: rgb(17, 122, 201);
 // Free flow
 .update-design.design-setup,
 .free.design-setup {
-	.step-container:not(.design-setup__preview) {
-		.navigation-link {
-			display: none;
-		}
-	}
 	.step-container__navigation {
 		.step-container__skip-wrapper {
 			button.step-container__navigation-link {

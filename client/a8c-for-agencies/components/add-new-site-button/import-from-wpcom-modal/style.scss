@@ -84,7 +84,7 @@ p.import-from-wpcom-modal__instruction {
 
 .wpcom-sites-table.redesigned-a8c-table {
 	overflow-y: auto;
-	margin-block-start: 24px;
+	margin-block: 24px;
 
 	&::-webkit-scrollbar {
 		width: 4px;
@@ -105,7 +105,7 @@ p.import-from-wpcom-modal__instruction {
 		content: "";
 		position: absolute;
 		left: 0;
-		bottom: 85px;
+		bottom: 80px;
 		width: 100%;
 		height: 5%;
 		display: inline-block;
@@ -130,7 +130,7 @@ p.import-from-wpcom-modal__instruction {
 
 	.dataviews-view-table {
 		padding-block-end: 80px;
-		margin: 0;
+		margin: 0 0 32px;
 	}
 
 	.dataviews-view-table thead {
@@ -171,34 +171,5 @@ p.import-from-wpcom-modal__instruction {
 		@include break-large {
 			max-width: unset;
 		}
-	}
-}
-
-.wpcom-sites-table-placeholder {
-	display: flex;
-	flex-direction: column;
-
-	.a4a-text-placeholder {
-		margin: 0;
-	}
-
-	.wpcom-sites-table-placeholder__header {
-		padding: 16px 0;
-	}
-
-	.wpcom-sites-table-placeholder__row {
-		display: flex;
-		flex-direction: row;
-		width: 100%;
-		gap: 8px;
-		margin-block-end: 16px;
-	}
-
-	.wpcom-sites-table-placeholder__row .a4a-text-placeholder:first-child {
-		width: 24px;
-	}
-
-	.wpcom-sites-table-placeholder__row .a4a-text-placeholder:last-child {
-		width: calc(100% - 24px);
 	}
 }

@@ -1,18 +1,20 @@
+import { useDesktopBreakpoint } from '@automattic/viewport-react';
 import { Button } from '@wordpress/components';
 import { Icon, external } from '@wordpress/icons';
 import { useTranslate } from 'i18n-calypso';
-import Layout from 'calypso/a8c-for-agencies/components/layout';
-import LayoutBody from 'calypso/a8c-for-agencies/components/layout/body';
+import { LayoutWithGuidedTour as Layout } from 'calypso/a8c-for-agencies/components/layout/layout-with-guided-tour';
+import LayoutTop from 'calypso/a8c-for-agencies/components/layout/layout-with-payment-notification';
+import MobileSidebarNavigation from 'calypso/a8c-for-agencies/components/sidebar/mobile-sidebar-navigation';
+import { A4A_TEAM_INVITE_LINK } from 'calypso/a8c-for-agencies/components/sidebar-menu/lib/constants';
+import StepSection from 'calypso/a8c-for-agencies/components/step-section';
+import StepSectionItem from 'calypso/a8c-for-agencies/components/step-section-item';
+import LayoutBody from 'calypso/layout/hosting-dashboard/body';
 import LayoutHeader, {
 	LayoutHeaderActions as Actions,
 	LayoutHeaderTitle as Title,
-} from 'calypso/a8c-for-agencies/components/layout/header';
-import LayoutTop from 'calypso/a8c-for-agencies/components/layout/top';
-import { A4A_TEAM_INVITE_LINK } from 'calypso/a8c-for-agencies/components/sidebar-menu/lib/constants';
+} from 'calypso/layout/hosting-dashboard/header';
 import { useDispatch } from 'calypso/state';
 import { recordTracksEvent } from 'calypso/state/analytics/actions';
-import StepSection from '../../../referrals/common/step-section';
-import StepSectionItem from '../../../referrals/common/step-section-item';
 
 import './style.scss';
 
@@ -20,18 +22,25 @@ export default function GetStarted() {
 	const translate = useTranslate();
 	const dispatch = useDispatch();
 
-	const title = translate( 'Manage team members' );
+	const isDesktop = useDesktopBreakpoint();
+
+	const title = isDesktop ? translate( 'Manage team members' ) : translate( 'Team' );
 
 	const onInviteClick = () => {
 		dispatch( recordTracksEvent( 'calypso_a4a_team_invite_team_member_click' ) );
 	};
 
+	const onLearnMoreClick = () => {
+		dispatch( recordTracksEvent( 'calypso_a4a_team_learn_more_managing_members_click' ) );
+	};
+
 	return (
-		<Layout className="team-list-get-started" title={ title } wide compact>
+		<Layout className="team-list-get-started" title={ title } wide>
 			<LayoutTop>
 				<LayoutHeader>
 					<Title>{ title }</Title>
 					<Actions>
+						<MobileSidebarNavigation />
 						<Button variant="primary" onClick={ onInviteClick } href={ A4A_TEAM_INVITE_LINK }>
 							{ translate( 'Invite a team member' ) }
 						</Button>
@@ -83,7 +92,8 @@ export default function GetStarted() {
 						className="team-list-get-started__learn-more-button"
 						variant="link"
 						target="_blank"
-						href="#" // FIXME: Add link to the KB article
+						href="https://agencieshelp.automattic.com/knowledge-base/invite-and-manage-team-members"
+						onClick={ onLearnMoreClick }
 					>
 						{ translate( 'Team members Knowledge Base article' ) }
 						<Icon icon={ external } size={ 18 } />

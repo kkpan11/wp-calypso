@@ -1,10 +1,10 @@
-import { Gridicon } from '@automattic/components';
 import { localizeUrl } from '@automattic/i18n-utils';
 import styled from '@emotion/styled';
 import { useTranslate } from 'i18n-calypso';
 import { useEffect, useState } from 'react';
 import { Tip } from 'calypso/performance-profiler/components/tip';
 import { LayoutBlock } from 'calypso/site-profiler/components/layout';
+import { PerformanceReportLoadingProgress } from './progress';
 
 interface LoadingScreenProps {
 	isSavedReport: boolean;
@@ -16,123 +16,42 @@ const StyledLoadingScreen = styled.div`
 		font-size: 20px;
 		font-weight: 500;
 		line-height: 26px;
-		margin-bottom: 30px;
+		margin-bottom: 5px;
+
+		&.saved-report {
+			margin-bottom: 30px;
+		}
 	}
 
-	span {
-		display: flex;
-		align-items: center;
-		font-size: 16px;
-		font-weight: 400;
-		line-height: 24px;
-		margin-bottom: 15px;
-		position: relative;
-
-		.gridicons-checkmark {
-			display: none;
-		}
-
-		&:before {
-			content: '';
-			display: inline-block;
-			width: 30px;
-			height: 30px;
-			border-radius: 50%;
-			margin-right: 10px;
-			border: 1px solid transparent;
-		}
-
-		@keyframes rotate {
-			from {
-				transform: rotate( 0deg );
-			}
-			to {
-				transform: rotate( 360deg );
-			}
-		}
-
-		@-webkit-keyframes rotate {
-			from {
-				-webkit-transform: rotate( 0deg );
-			}
-			to {
-				-webkit-transform: rotate( 360deg );
-			}
-		}
-
-		&.complete {
-			.gridicons-checkmark {
-				display: block;
-				position: absolute;
-				top: 8px;
-				left: 7px;
-				fill: #fff;
-			}
-			:before {
-				background-color: var( --studio-green-30 );
-				color: #fff;
-			}
-		}
-
-		&.running:before {
-			border: 1px solid var( --studio-gray-5 );
-		}
-
-		&.running:after {
-			content: '';
-			width: 30px;
-			height: 30px;
-			position: absolute;
-			left: 0;
-			top: 0;
-			border: solid 1.5px rgba( 56, 88, 233, 1 );
-			border-radius: 50%;
-			border-right-color: transparent;
-			border-bottom-color: transparent;
-			-webkit-transition: all 0.5s ease-in;
-			-webkit-animation-name: rotate;
-			-webkit-animation-duration: 1s;
-			-webkit-animation-iteration-count: infinite;
-			-webkit-animation-timing-function: linear;
-
-			transition: all 0.5s ease-in;
-			animation-name: rotate;
-			animation-duration: 1s;
-			animation-iteration-count: infinite;
-			animation-timing-function: linear;
-		}
-
-		&.incomplete {
-			color: var( --studio-gray-20 );
-			::before {
-				border: 1px dashed var( --studio-gray-5 );
-			}
-		}
+	p {
+		font-size: 14px;
+		color: var( --studio-gray-70 );
+		margin-bottom: 30px;
 	}
 `;
 
 const TipContainer = styled.div`
-	margin-top: 65px;
+	margin-top: 64px;
+	position: relative;
+	overflow: hidden;
+	height: 200px;
+`;
+
+const TipWrapper = styled.div< { isActive: boolean } >`
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	opacity: ${ ( props ) => ( props.isActive ? 1 : 0 ) };
+	transition: opacity 0.5s ease;
 `;
 
 export const LoadingScreen = ( { isSavedReport }: LoadingScreenProps ) => {
 	const translate = useTranslate();
-	const [ step, setStep ] = useState( 0 );
 
 	const heading = isSavedReport
-		? translate( "Your site's results are ready" )
-		: translate( "Testing your site's speed…" );
-
-	const steps = isSavedReport
-		? [ translate( 'Getting your report…' ) ]
-		: [
-				translate( 'Loading your site' ),
-				translate( 'Measuring Core Web Vitals' ),
-				translate( 'Taking screenshots' ),
-				translate( 'Fetching historic data' ),
-				translate( 'Identifying performance improvements' ),
-				translate( 'Finalizing your results' ),
-		  ];
+		? translate( 'Your site‘s results are ready' )
+		: translate( 'Testing your site‘s speed' );
 
 	const tips = [
 		{
@@ -144,7 +63,7 @@ export const LoadingScreen = ( { isSavedReport }: LoadingScreenProps ) => {
 		{
 			heading: translate( 'Did you know?' ),
 			description: translate(
-				"WordPress.com hosting comes with unlimited bandwidth, visitors, and traffic so you'll never be surprised by extra fees."
+				'WordPress.com hosting comes with unlimited bandwidth, visitors, and traffic so you‘ll never be surprised by extra fees.'
 			),
 		},
 		{
@@ -169,60 +88,31 @@ export const LoadingScreen = ( { isSavedReport }: LoadingScreenProps ) => {
 		},
 	];
 	const [ currentTip, setCurrentTip ] = useState( 0 );
+	const [ previousTip, setPreviousTip ] = useState( 0 );
 
 	useEffect( () => {
-		const timeoutId = setTimeout( () => {
-			if ( step === steps.length - 1 ) {
-				return;
-			}
-			setStep( step + 1 );
-		}, 5000 );
+		const intervalId = setInterval( () => {
+			setPreviousTip( currentTip );
+			const randomTip = Math.floor( Math.random() * tips.length );
+			setCurrentTip( randomTip );
+		}, 10000 );
 
-		return () => clearTimeout( timeoutId );
-	} );
-
-	useEffect( () => {
-		const updateCurrentTip = () => {
-			setTimeout( () => {
-				const randomTip = Math.floor( Math.random() * tips.length );
-				setCurrentTip( randomTip );
-
-				updateCurrentTip();
-			}, 10000 );
-		};
-
-		updateCurrentTip();
+		return () => clearInterval( intervalId );
 	}, [] );
-
-	const stepStatus = ( index: number, step: number ) => {
-		if ( step > index ) {
-			return 'complete';
-		}
-		if ( step === index ) {
-			return 'running';
-		}
-		return 'incomplete';
-	};
 
 	return (
 		<LayoutBlock className="landing-page-header-block">
 			<StyledLoadingScreen>
-				<h2>{ heading }</h2>
-				{ steps.map( ( heading, index ) => (
-					<span key={ index } className={ stepStatus( index, step ) }>
-						<Gridicon icon="checkmark" size={ 18 } />
-						{ heading }
-					</span>
-				) ) }
-				{ tips[ currentTip ] && (
-					<TipContainer>
-						<Tip
-							title={ tips[ currentTip ].heading }
-							content={ tips[ currentTip ].description }
-							link={ tips[ currentTip ].link }
-						/>
-					</TipContainer>
-				) }
+				<h2 className={ isSavedReport ? 'saved-report' : '' }>{ heading }</h2>
+				{ ! isSavedReport && <p>{ translate( 'This may take around 30 seconds.' ) }</p> }
+				<PerformanceReportLoadingProgress isSavedReport={ isSavedReport } />
+				<TipContainer>
+					{ tips.map( ( tip, index ) => (
+						<TipWrapper key={ index } isActive={ index === currentTip || index === previousTip }>
+							<Tip title={ tip.heading } content={ tip.description } link={ tip.link } />
+						</TipWrapper>
+					) ) }
+				</TipContainer>
 			</StyledLoadingScreen>
 		</LayoutBlock>
 	);

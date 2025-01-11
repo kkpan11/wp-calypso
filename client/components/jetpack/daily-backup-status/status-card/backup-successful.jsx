@@ -5,17 +5,20 @@ import { default as ActivityCard, useToggleContent } from 'calypso/components/ac
 import { default as Toolbar } from 'calypso/components/activity-card/toolbar';
 import ExternalLink from 'calypso/components/external-link';
 import BackupWarningRetry from 'calypso/components/jetpack/backup-warnings/backup-warning-retry';
+import NextScheduledBackup from 'calypso/components/jetpack/daily-backup-status/status-card/parts/next-scheduled-backup';
 import { useLocalizedMoment } from 'calypso/components/localized-moment';
 import { preventWidows } from 'calypso/lib/formatting';
 import { useActionableRewindId } from 'calypso/lib/jetpack/actionable-rewind-id';
 import { getBackupWarnings } from 'calypso/lib/jetpack/backup-utils';
 import { applySiteOffset } from 'calypso/lib/site/timezone';
+import getBackupLastBackupFailed from 'calypso/state/rewind/selectors/get-backup-last-backup-failed';
 import getSiteGmtOffset from 'calypso/state/selectors/get-site-gmt-offset';
 import getSiteTimezoneValue from 'calypso/state/selectors/get-site-timezone-value';
 import isJetpackSiteMultiSite from 'calypso/state/sites/selectors/is-jetpack-site-multi-site';
 import { getSelectedSiteId } from 'calypso/state/ui/selectors';
 import ActionButtons from '../action-buttons';
 import useGetDisplayDate from '../use-get-display-date';
+import { BackupLastFailed } from './backup-last-failed';
 import { BackupRealtimeMessage } from './backup-realtime-message';
 import cloudSuccessIcon from './icons/cloud-success.svg';
 import cloudWarningIcon from './icons/cloud-warning.svg';
@@ -38,12 +41,11 @@ const BackupSuccessful = ( {
 	const moment = useLocalizedMoment();
 	const timezone = useSelector( ( state ) => getSiteTimezoneValue( state, siteId ) );
 	const gmtOffset = useSelector( ( state ) => getSiteGmtOffset( state, siteId ) );
+	const lastBackupFailed = useSelector( ( state ) => getBackupLastBackupFailed( state, siteId ) );
 
 	const getDisplayDate = useGetDisplayDate();
 	const displayDate = getDisplayDate( backup.activityTs );
 	const displayDateNoLatest = getDisplayDate( backup.activityTs, false );
-	// TODO To be use in the future
-	//const displayDateBaseRewind = backup.baseRewindId ? getDisplayDate( backup.baseRewindId * 1000, false ) : null;
 
 	const today = applySiteOffset( moment(), {
 		timezone: timezone,
@@ -69,6 +71,7 @@ const BackupSuccessful = ( {
 	const isCloneFlow =
 		availableActions && availableActions.length === 1 && availableActions[ 0 ] === 'clone';
 
+	const selectedBackupDate = moment( backup.rewindId, 'X' );
 	const baseBackupDate = backup.baseRewindId ? moment.unix( backup.baseRewindId ) : null;
 	const showRealTimeMessage = backup.baseRewindId && baseBackupDate && backup.rewindStepCount > 0;
 	return (
@@ -78,30 +81,20 @@ const BackupSuccessful = ( {
 				<div className="status-card__hide-mobile">
 					{ isToday ? translate( 'Latest backup' ) : translate( 'Latest backup on this day' ) }
 				</div>
-
-				{ ! isCloneFlow && (
-					<div className="status-card__toolbar">
-						<Toolbar
-							siteId={ siteId }
-							activity={ backup }
-							isContentExpanded={ showContent }
-							onToggleContent={ toggleShowContent }
-							availableActions={ availableActions }
-							onClickClone={ onClickClone }
-						/>
-					</div>
-				) }
+				{ isToday && config.isEnabled( 'jetpack/backup-schedule-setting' ) ? (
+					<NextScheduledBackup siteId={ siteId } />
+				) : null }
 			</div>
 			<div className="status-card__hide-desktop">
 				<div className="status-card__title">{ displayDate }</div>
 			</div>
 			<div className="status-card__hide-mobile">
 				<div className="status-card__title">{ displayDateNoLatest }</div>
-				{ config.isEnabled( 'jetpack/backup-realtime-message' ) && showRealTimeMessage && (
+				{ showRealTimeMessage && (
 					<BackupRealtimeMessage
 						baseBackupDate={ baseBackupDate }
 						eventsCount={ backup.rewindStepCount }
-						selectedBackupDate={ selectedDate }
+						selectedBackupDate={ selectedBackupDate }
 					/>
 				) }
 			</div>
@@ -133,13 +126,30 @@ const BackupSuccessful = ( {
 					</p>
 				</div>
 			) }
-			<ActionButtons
-				rewindId={ actionableRewindId }
-				isMultiSite={ isMultiSite }
-				hasWarnings={ hasWarnings }
-				availableActions={ availableActions }
-				onClickClone={ onClickClone }
-			/>
+
+			{ isCloneFlow && (
+				<ActionButtons
+					rewindId={ actionableRewindId }
+					isMultiSite={ isMultiSite }
+					hasWarnings={ hasWarnings }
+					availableActions={ availableActions }
+					onClickClone={ onClickClone }
+				/>
+			) }
+
+			{ ! isCloneFlow && (
+				<Toolbar
+					siteId={ siteId }
+					activity={ backup }
+					isContentExpanded={ showContent }
+					onToggleContent={ toggleShowContent }
+					availableActions={ availableActions }
+					onClickClone={ onClickClone }
+					hideExpandedContent
+					useSplitButton
+				/>
+			) }
+
 			{ showBackupDetails && (
 				<div className="status-card__realtime-details">
 					<div className="status-card__realtime-details-card">
@@ -148,6 +158,8 @@ const BackupSuccessful = ( {
 				</div>
 			) }
 			{ hasWarnings && <BackupWarningRetry siteId={ siteId } /> }
+
+			{ isToday && lastBackupFailed && <BackupLastFailed siteId={ siteId } /> }
 		</>
 	);
 };

@@ -1,67 +1,51 @@
-import { Icon, post, media, comment, page } from '@wordpress/icons';
+import { createInterpolateElement } from '@wordpress/element';
+import { verse, page, file, postFeaturedImage } from '@wordpress/icons';
+import { useI18n } from '@wordpress/react-i18n';
+import {
+	ContentStepContent,
+	StepStatus,
+} from 'calypso/data/paid-newsletter/use-paid-newsletter-query';
+import SummaryStat from './SummaryStat';
 
-type Props = {
-	cardData: any;
-	status: string;
-};
+interface ContentSummaryProps {
+	stepContent: ContentStepContent;
+	status: StepStatus;
+}
 
-export default function ContentSummary( { status, cardData }: Props ) {
+export default function ContentSummary( { status, stepContent }: ContentSummaryProps ) {
+	const { __ } = useI18n();
 	if ( status === 'skipped' ) {
 		return (
-			<div className="summary__content">
-				<p>
-					<Icon icon={ post } /> Content importing was <strong>skipped!</strong>
-				</p>
-			</div>
+			<p>
+				<SummaryStat
+					icon={ postFeaturedImage }
+					label={ createInterpolateElement(
+						__( 'You <strong>skipped</strong> content importing.' ),
+						{
+							strong: <strong />,
+						}
+					) }
+				/>
+			</p>
 		);
 	}
 
 	if ( status === 'done' ) {
-		const progress = cardData.progress;
+		const progress = stepContent.progress;
+		const posts = progress.post.completed;
+		const pages = progress.page.completed;
+		const attachments = progress.attachment.completed;
+
 		return (
-			<div className="summary__content">
-				<p>We imported:</p>
-
-				{ progress.post.completed !== 0 && (
-					<p>
-						<Icon icon={ post } />
-						<strong>{ progress.post.completed }</strong> posts
-					</p>
-				) }
-
-				{ progress.page.completed !== 0 && (
-					<p>
-						<Icon icon={ page } />
-						<strong>{ progress.page.completed }</strong> pages
-					</p>
-				) }
-
-				{ progress.attachment.completed !== 0 && (
-					<p>
-						<Icon icon={ media } />
-						<strong>{ progress.attachment.completed }</strong> media
-					</p>
-				) }
-
-				{ progress.comment.completed !== 0 && (
-					<p>
-						<Icon icon={ comment } />
-						<strong>{ progress.comment.completed }</strong> comments
-					</p>
+			<div className="summary__content-stats">
+				{ posts > 0 && <SummaryStat count={ posts } icon={ verse } label={ __( 'Posts' ) } /> }
+				{ pages > 0 && <SummaryStat count={ pages } icon={ page } label={ __( 'Pages' ) } /> }
+				{ attachments > 0 && (
+					<SummaryStat count={ attachments } icon={ file } label={ __( 'Media items' ) } />
 				) }
 			</div>
 		);
 	}
 
-	if ( status === 'importing' || status === 'processing' ) {
-		return (
-			<div className="summary__content">
-				<p>
-					<Icon icon={ post } /> Content is importing...
-				</p>
-			</div>
-		);
-	}
-
-	return;
+	return null;
 }
