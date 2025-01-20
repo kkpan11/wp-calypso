@@ -64,7 +64,7 @@ const Launchpad: Step = ( { navigation, flow }: LaunchpadProps ) => {
 	if (
 		! isLoggedIn ||
 		launchpadScreenOption === 'off' ||
-		( launchpadScreenOption === false && 'videopress' !== flow && ! newWriterFlow )
+		( launchpadScreenOption === false && ! newWriterFlow )
 	) {
 		redirectToSiteHome( siteSlug, flow );
 	}
@@ -76,7 +76,8 @@ const Launchpad: Step = ( { navigation, flow }: LaunchpadProps ) => {
 
 	function redirectToSiteHome( siteSlug: string | null, flow: string | null ) {
 		recordTracksEvent( 'calypso_launchpad_redirect_to_home', { flow: flow } );
-		window.location.replace( `/home/${ siteSlug }` );
+		// Query param is a guard to prevent infinite loops (#98122)
+		window.location.replace( `/home/${ siteSlug }?from=full-launchpad` );
 	}
 
 	useEffect( () => {

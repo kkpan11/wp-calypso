@@ -1,6 +1,6 @@
 import {
 	ComponentSwapper,
-	CountComparisonCard,
+	CountCard,
 	MobileHighlightCardListing,
 	Spinner,
 } from '@automattic/components';
@@ -84,15 +84,18 @@ function SubscriberHighlightsStandard( {
 	highlights,
 	isLoading,
 }: SubscriberHighlightsRenderProps ) {
+	const translate = useTranslate();
+
 	return (
 		<div className="highlight-cards-list">
 			{ highlights.map( ( highlight ) => (
-				<CountComparisonCard
-					key={ highlight.heading }
+				<CountCard
 					heading={ isLoading ? '-' : highlight.heading }
-					count={ isLoading ? null : highlight.count }
+					key={ highlight.heading }
 					showValueTooltip
+					label={ translate( 'subscribers' ) }
 					note={ highlight.note }
+					value={ isLoading ? null : highlight.count }
 				/>
 			) ) }
 		</div>

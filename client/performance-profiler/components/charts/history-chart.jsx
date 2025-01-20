@@ -1,5 +1,4 @@
 import { useResizeObserver } from '@wordpress/compose';
-import { Icon, info } from '@wordpress/icons';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { axisBottom as d3AxisBottom, axisLeft as d3AxisLeft } from 'd3-axis';
 import {
@@ -10,6 +9,7 @@ import {
 import { select as d3Select, event as d3Event } from 'd3-selection';
 import { line as d3Line, curveMonotoneX as d3MonotoneXCurve } from 'd3-shape';
 import { timeFormat as d3TimeFormat } from 'd3-time-format';
+import { useTranslate } from 'i18n-calypso';
 import React, { createRef, useEffect } from 'react';
 import './style.scss';
 
@@ -21,8 +21,10 @@ const createScales = ( data, range, margin, width, height ) => {
 		.domain( d3Extent( data, ( item ) => new Date( item.date ) ) )
 		.range( [ margin.left + 20, width - margin.right - 20 ] );
 
+	const maxItemValue = d3Max( data, ( item ) => item.value );
+
 	const yScale = d3ScaleLinear()
-		.domain( [ 0, d3Max( data, ( item ) => item.value ) * 1.5 ] )
+		.domain( [ 0, maxItemValue === 0 ? 1 : maxItemValue * 1.5 ] )
 		.nice()
 		.range( [ height - margin.bottom, margin.top ] );
 
@@ -77,14 +79,18 @@ const drawGrid = ( svg, yScale, width, margin ) => {
 		.attr( 'y1', yScale )
 		.attr( 'y2', yScale )
 		.attr( 'stroke', '#F6F7F7' )
-		.attr( 'stroke-width', 2 );
+		.attr( 'stroke-width', 1 );
 };
 
 // Draw line with gradient
 const drawLine = ( svg, data, xScale, yScale ) => {
 	const lineGenerator = d3Line()
+		.defined( ( d ) => ! isNaN( d.value ) )
 		.x( ( item ) => xScale( new Date( item.date ) ) )
-		.y( ( item ) => yScale( item.value ) )
+		.y( ( item ) => {
+			const value = item.value;
+			return isNaN( value ) ? null : yScale( item.value );
+		} )
 		.curve( d3MonotoneXCurve );
 
 	svg
@@ -97,19 +103,23 @@ const drawLine = ( svg, data, xScale, yScale ) => {
 };
 
 // Draw axes
-const drawAxes = ( svg, xScale, yScale, data, margin, width, height ) => {
+const drawAxes = ( svg, xScale, yScale, data, margin, width, height, d3Format, isMobile ) => {
 	const dates = data.map( ( item ) => new Date( item.date ) );
 
-	svg
+	const axis = svg
 		.append( 'g' )
 		.attr( 'transform', `translate(0,${ height - margin.bottom })` )
 		.call(
 			d3AxisBottom( xScale )
 				.tickValues( dates )
-				.tickFormat( d3TimeFormat( '%-m/%d' ) )
+				.tickFormat( d3TimeFormat( d3Format ) )
 				.tickPadding( 10 )
 		)
 		.call( ( g ) => g.select( '.domain' ).remove() );
+
+	if ( isMobile ) {
+		axis.selectAll( 'text' ).attr( 'transform', 'rotate(-45)' ).style( 'text-anchor', 'end' );
+	}
 
 	svg
 		.append( 'g' )
@@ -125,12 +135,21 @@ const createShapePath = ( item, xScale, yScale, range ) => {
 	const y = yScale( item.value );
 	const size = 7;
 
+	const cornerRadius = 3;
 	if ( item.value < range[ 0 ] ) {
 		return `M${ x },${ y }m-${ size },0a${ size },${ size } 0 1,0 ${
 			2 * size
 		},0a${ size },${ size } 0 1,0 ${ -2 * size },0Z`; // Circle
 	} else if ( item.value >= range[ 1 ] ) {
-		return `M${ x - size },${ y - size }h${ 2 * size }v${ 2 * size }h${ -2 * size }Z`; // Square
+		return `M${ x - size + cornerRadius },${ y - size }
+            h${ size * 2 - cornerRadius * 2 }
+            a${ cornerRadius },${ cornerRadius } 0 0 1 ${ cornerRadius },${ cornerRadius }
+            v${ size * 2 - cornerRadius * 2 }
+            a${ cornerRadius },${ cornerRadius } 0 0 1 -${ cornerRadius },${ cornerRadius }
+            h-${ size * 2 - cornerRadius * 2 }
+            a${ cornerRadius },${ cornerRadius } 0 0 1 -${ cornerRadius },-${ cornerRadius }
+            v-${ size * 2 - cornerRadius * 2 }
+            a${ cornerRadius },${ cornerRadius } 0 0 1 ${ cornerRadius },-${ cornerRadius }Z`; // Square
 	}
 	return `M${ x - 2 - size },${ y + size }L${ x + 2 + size },${ y + size }L${ x },${ y - size }Z`; // Triangle
 };
@@ -181,7 +200,8 @@ const generateSampleData = ( range ) => {
 	return data;
 };
 
-const HistoryChart = ( { data, range, height } ) => {
+const HistoryChart = ( { data, range, height, d3Format = '%-m/%d', isMobile } ) => {
+	const translate = useTranslate();
 	const svgRef = createRef();
 	const tooltipRef = createRef();
 	const dataAvailable = data && data.some( ( e ) => e.value !== null );
@@ -200,7 +220,7 @@ const HistoryChart = ( { data, range, height } ) => {
 		d3Select( svgRef.current ).selectAll( '*' ).remove();
 
 		const width = entry.width;
-		const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+		const margin = { top: 20, right: 20, bottom: isMobile ? 60 : 40, left: 50 };
 
 		const { xScale, yScale, colorScale } = createScales( data, range, margin, width, height );
 
@@ -211,22 +231,11 @@ const HistoryChart = ( { data, range, height } ) => {
 		drawGrid( svg, yScale, width, margin );
 
 		dataAvailable && drawLine( svg, data, xScale, yScale );
-		drawAxes( svg, xScale, yScale, data, margin, width, height );
+		drawAxes( svg, xScale, yScale, data, margin, width, height, d3Format, isMobile );
 
 		const tooltip = d3Select( tooltipRef.current ).attr( 'class', 'tooltip' );
 		dataAvailable && drawDots( svg, data, xScale, yScale, colorScale, range, tooltip );
-	}, [ dataAvailable, data, range, svgRef, tooltipRef, height, entry ] );
-
-	const handleInfoToolTip = ( event ) => {
-		const tooltip = d3Select( tooltipRef.current );
-		const data2 = 'Not enough real-world speed data is available for this page.';
-		showTooltip( tooltip, data2, event );
-	};
-
-	const handleHideToolTip = () => {
-		const tooltip = d3Select( tooltipRef.current );
-		hideTooltip( tooltip );
-	};
+	}, [ dataAvailable, data, range, svgRef, tooltipRef, height, entry, d3Format ] );
 
 	return (
 		<div className="chart-container">
@@ -236,13 +245,12 @@ const HistoryChart = ( { data, range, height } ) => {
 				<svg ref={ svgRef }></svg>
 				{ ! dataAvailable && (
 					<div className="info">
-						History unavailable
-						<Icon
-							onMouseOver={ handleInfoToolTip }
-							onMouseOut={ handleHideToolTip }
-							icon={ info }
-							className="icon"
-						/>
+						<p className="heading">{ translate( 'No history available' ) }</p>
+						<p>
+							{ translate(
+								'The Chrome User Experience Report collects speed data from real site visits. Sites with low-traffic don‘t provide enough data to generate historical trends.'
+							) }
+						</p>
 					</div>
 				) }
 			</div>

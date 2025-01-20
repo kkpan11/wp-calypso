@@ -1,14 +1,26 @@
 const removeDuplicatedSlashes = ( url: string ) => url.replace( /(https?:\/\/)|(\/)+/g, '$1$2' );
 
-export const getPluginInstallationPage = ( fromUrl: string ) => {
+const ensureProtocol = ( url: string ) => {
+	if ( ! url.startsWith( 'http://' ) && ! url.startsWith( 'https://' ) ) {
+		return `https://${ url }`;
+	}
+	return url;
+};
+
+export const getMigrationPluginInstallURL = ( fromUrl: string ) => {
 	if ( fromUrl !== '' ) {
+		const baseUrl = ensureProtocol( fromUrl );
+
 		return removeDuplicatedSlashes(
-			`${ fromUrl }/wp-admin/plugin-install.php?s=%2522migrate%2520guru%2522&tab=search&type=term`
+			`${ baseUrl }/wp-admin/plugin-install.php?s=%2522wpcom%2520migration%2522&tab=search&type=term`
 		);
 	}
 
-	return 'https://wordpress.org/plugins/migrate-guru/';
+	return 'https://wordpress.org/plugins/wpcom-migration/';
 };
 
-export const getMigrateGuruPageURL = ( siteURL: string ) =>
-	removeDuplicatedSlashes( `${ siteURL }/wp-admin/admin.php?page=migrateguru` );
+export const getMigrationPluginPageURL = ( siteURL: string ) => {
+	const baseUrl = ensureProtocol( siteURL );
+
+	return removeDuplicatedSlashes( `${ baseUrl }/wp-admin/admin.php?page=wpcom-migration` );
+};

@@ -1,12 +1,22 @@
+/* eslint-disable no-restricted-imports */
+import { recordTracksEvent } from '@automattic/calypso-analytics';
+import { Gridicon } from '@automattic/components';
+import { EllipsisMenu } from '@automattic/odie-client';
+import { useManageSupportInteraction } from '@automattic/odie-client/src/data';
+import { clearHelpCenterZendeskConversationStarted } from '@automattic/odie-client/src/utils/storage-utils';
 import { CardHeader, Button, Flex } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
+import { useMemo, useCallback, useEffect, useState } from '@wordpress/element';
 import { closeSmall, chevronUp, lineSolid, commentContent, page, Icon } from '@wordpress/icons';
 import { useI18n } from '@wordpress/react-i18n';
-import { useCallback } from 'react';
+import clsx from 'clsx';
 import { Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 import { usePostByUrl } from '../hooks';
+import { useResetSupportInteraction } from '../hooks/use-reset-support-interaction';
 import { DragIcon } from '../icons';
 import { HELP_CENTER_STORE } from '../stores';
+import { BackButton } from './back-button';
 import type { Header } from '../types';
 import type { HelpCenterSelect } from '@automattic/data-stores';
 
@@ -55,16 +65,100 @@ const SupportModeTitle = () => {
 	}
 };
 
+const ChatEllipsisMenu = () => {
+	const { __ } = useI18n();
+	const resetSupportInteraction = useResetSupportInteraction();
+	const { startNewInteraction } = useManageSupportInteraction();
+
+	const clearChat = async () => {
+		await resetSupportInteraction();
+		startNewInteraction( {
+			event_source: 'help-center',
+			event_external_id: uuidv4(),
+		} );
+		clearHelpCenterZendeskConversationStarted();
+		recordTracksEvent( 'calypso_inlinehelp_clear_conversation' );
+	};
+
+	return (
+		<EllipsisMenu
+			popoverClassName="help-center help-center__container-header-menu"
+			position="bottom"
+			trackEventProps={ { source: 'help_center' } }
+		>
+			<div className="clear-conversation__wrapper">
+				<button onClick={ clearChat }>
+					<Gridicon icon="comment" />
+					<div>{ __( 'Clear Conversation' ) }</div>
+				</button>
+			</div>
+		</EllipsisMenu>
+	);
+};
+
+const HeaderText = () => {
+	const { __ } = useI18n();
+	const { pathname } = useLocation();
+	const [ isConversationWithZendesk, setIsConversationWithZendesk ] = useState< boolean >( false );
+	const { currentSupportInteraction } = useSelect( ( select ) => {
+		const store = select( HELP_CENTER_STORE ) as HelpCenterSelect;
+		return {
+			isChatLoaded: store.getIsChatLoaded(),
+			currentSupportInteraction: store.getCurrentSupportInteraction(),
+		};
+	}, [] );
+
+	useEffect( () => {
+		if ( currentSupportInteraction ) {
+			const zendeskEvent = currentSupportInteraction?.events.find(
+				( event ) => event.event_source === 'zendesk'
+			);
+			if ( zendeskEvent ) {
+				setIsConversationWithZendesk( true );
+			} else {
+				setIsConversationWithZendesk( false );
+			}
+		}
+	}, [ currentSupportInteraction ] );
+
+	const headerText = useMemo( () => {
+		const getOdieHeader = () => {
+			return isConversationWithZendesk
+				? __( 'Support Team', __i18n_text_domain__ )
+				: __( 'Support Assistant', __i18n_text_domain__ );
+		};
+
+		switch ( pathname ) {
+			case '/odie':
+				return getOdieHeader();
+			case '/contact-form':
+				return __( 'Support Assistant', __i18n_text_domain__ );
+			case '/chat-history':
+				return __( 'History', __i18n_text_domain__ );
+			default:
+				return __( 'Help Center', __i18n_text_domain__ );
+		}
+	}, [ __, isConversationWithZendesk, pathname ] );
+
+	return (
+		<span id="header-text" role="presentation" className="help-center-header__text">
+			{ headerText }
+		</span>
+	);
+};
+
 const Content = ( { onMinimize }: { onMinimize?: () => void } ) => {
 	const { __ } = useI18n();
+	const { pathname } = useLocation();
+
+	const shouldDisplayClearChatButton = pathname.startsWith( '/odie' );
+	const isHelpCenterHome = pathname === '/';
 
 	return (
 		<>
-			<span id="header-text" className="help-center-header__text" role="presentation">
-				<DragIcon />
-
-				{ __( 'Help Center', __i18n_text_domain__ ) }
-			</span>
+			{ isHelpCenterHome ? <DragIcon /> : <BackButton /> }
+			<HeaderText />
+			{ shouldDisplayClearChatButton && <ChatEllipsisMenu /> }
 			<Button
 				className="help-center-header__minimize"
 				label={ __( 'Minimize Help Center', __i18n_text_domain__ ) }
@@ -78,17 +172,15 @@ const Content = ( { onMinimize }: { onMinimize?: () => void } ) => {
 };
 
 const ContentMinimized = ( {
+	unreadCount = 0,
 	handleClick,
 	onMaximize,
 }: {
+	unreadCount: number;
 	handleClick?: ( event: React.SyntheticEvent ) => void;
 	onMaximize?: () => void;
 } ) => {
 	const { __ } = useI18n();
-	const unreadCount = useSelect(
-		( select ) => ( select( HELP_CENTER_STORE ) as HelpCenterSelect ).getUnreadCount(),
-		[]
-	);
 	const formattedUnreadCount = unreadCount > 9 ? '9+' : unreadCount;
 
 	return (
@@ -110,7 +202,8 @@ const ContentMinimized = ( {
 					<Route path="/contact-form" element={ <SupportModeTitle /> } />
 					<Route path="/post" element={ <ArticleTitle /> } />
 					<Route path="/success" element={ __( 'Message Submitted', __i18n_text_domain__ ) } />
-					<Route path="/odie" element={ __( 'Wapuu', __i18n_text_domain__ ) } />
+					<Route path="/odie" element={ __( 'Support Assistant', __i18n_text_domain__ ) } />
+					<Route path="/chat-history" element={ __( 'History', __i18n_text_domain__ ) } />
 				</Routes>
 				{ unreadCount > 0 && (
 					<span className="help-center-header__unread-count">{ formattedUnreadCount }</span>
@@ -130,21 +223,36 @@ const ContentMinimized = ( {
 
 const HelpCenterHeader = ( { isMinimized = false, onMinimize, onMaximize, onDismiss }: Header ) => {
 	const { __ } = useI18n();
+	const location = useLocation();
 
-	const handleClick = useCallback(
-		( event: React.SyntheticEvent ) => {
-			if ( event.target === event.currentTarget ) {
-				onMaximize?.();
-			}
-		},
-		[ onMaximize ]
+	const unreadCount = useSelect(
+		( select ) => ( select( HELP_CENTER_STORE ) as HelpCenterSelect ).getUnreadCount(),
+		[]
+	);
+
+	const handleClick = useCallback( () => {
+		if ( isMinimized ) {
+			onMaximize?.();
+		}
+	}, [ onMaximize, isMinimized ] );
+
+	const classNames = clsx(
+		'help-center__container-header',
+		location?.pathname?.replace( /^\//, '' ),
+		{
+			'has-unread': unreadCount > 0 && isMinimized,
+		}
 	);
 
 	return (
-		<CardHeader className="help-center__container-header">
+		<CardHeader className={ classNames }>
 			<Flex onClick={ handleClick }>
 				{ isMinimized ? (
-					<ContentMinimized handleClick={ handleClick } onMaximize={ onMaximize } />
+					<ContentMinimized
+						unreadCount={ unreadCount }
+						handleClick={ handleClick }
+						onMaximize={ onMaximize }
+					/>
 				) : (
 					<Content onMinimize={ onMinimize } />
 				) }

@@ -1,3 +1,4 @@
+import { debounce } from '@wordpress/compose';
 import { use, select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
@@ -56,6 +57,13 @@ const SELECTORS = {
 	 * Legacy block inserter
 	 */
 	LEGACY_BLOCK_INSERTER: '.block-editor-inserter__block-list',
+
+	/**
+	 * Command Palette
+	 */
+	COMMAND_PALETTE_ROOT: '.commands-command-menu__container div[cmdk-root]',
+	COMMAND_PALETTE_INPUT: '.commands-command-menu__container input[cmdk-input]',
+	COMMAND_PALETTE_LIST: '.commands-command-menu__container div[cmdk-list]',
 };
 
 // Debugger.
@@ -370,6 +378,32 @@ const maybeTrackPatternInsertion = ( actionData, additionalData ) => {
 	}
 
 	return null;
+};
+
+/**
+ * Track block drag and drop events.
+ * @param {Array} clientIds - Array of client IDs of the blocks being dragged.
+ * @param {string} fromRootClientId - Root client ID from where the blocks are dragged.
+ * @param {string} toRootClientId - Root client ID to where the blocks are dropped.
+ * @returns {void}
+ */
+const trackBlockDragDrop = ( clientIds, fromRootClientId, toRootClientId ) => {
+	const isDragging = select( 'core/block-editor' ).isDraggingBlocks();
+
+	// moveBlocksToPosition action is called when moving given blocks
+	// to a new position. This could be used in various scenarios such
+	// as mover arrows in the block toolbar, drag and drop, etc.
+	// Therefore this tracking ignore actions that are not related to
+	// dragging blocks.
+	if ( ! isDragging ) {
+		return;
+	}
+
+	getBlocksTracker( 'wpcom_block_moved_via_dragging' )(
+		clientIds,
+		fromRootClientId,
+		toRootClientId
+	);
 };
 
 /**
@@ -799,6 +833,72 @@ const trackInstallBlockType = ( block ) => {
 };
 
 /**
+ * Command Palette
+ */
+const trackCommandPaletteSearch = debounce( ( event ) => {
+	tracksRecordEvent( 'wpcom_editor_command_palette_search', {
+		keyword: event.target.value,
+	} );
+}, 500 );
+
+const trackCommandPaletteSelected = ( event ) => {
+	let selectedCommandElement;
+	if ( event.type === 'keydown' && event.code === 'Enter' ) {
+		selectedCommandElement = event.currentTarget.querySelector(
+			'div[cmdk-item][aria-selected="true"]'
+		);
+	} else if ( event.type === 'click' ) {
+		selectedCommandElement = event.target.closest( 'div[cmdk-item][aria-selected="true"]' );
+	}
+
+	if ( selectedCommandElement ) {
+		tracksRecordEvent( 'wpcom_editor_command_palette_selected', {
+			value: selectedCommandElement.dataset.value,
+		} );
+	}
+};
+
+const trackCommandPaletteOpen = () => {
+	tracksRecordEvent( 'wpcom_editor_command_palette_open' );
+
+	window.setTimeout( () => {
+		const commandPaletteInputElement = document.querySelector( SELECTORS.COMMAND_PALETTE_INPUT );
+		if ( commandPaletteInputElement ) {
+			commandPaletteInputElement.addEventListener( 'input', trackCommandPaletteSearch );
+		}
+
+		const commandPaletteListElement = document.querySelector( SELECTORS.COMMAND_PALETTE_LIST );
+		if ( commandPaletteListElement ) {
+			commandPaletteListElement.addEventListener( 'click', trackCommandPaletteSelected );
+		}
+
+		const commandPaletteRootElement = document.querySelector( SELECTORS.COMMAND_PALETTE_ROOT );
+		if ( commandPaletteRootElement ) {
+			commandPaletteRootElement.addEventListener( 'keydown', trackCommandPaletteSelected );
+		}
+	} );
+};
+
+const trackCommandPaletteClose = () => {
+	tracksRecordEvent( 'wpcom_editor_command_palette_close' );
+
+	const commandPaletteInputElement = document.querySelector( SELECTORS.COMMAND_PALETTE_INPUT );
+	if ( commandPaletteInputElement ) {
+		commandPaletteInputElement.removeEventListener( 'input', trackCommandPaletteSearch );
+	}
+
+	const commandPaletteListElement = document.querySelector( SELECTORS.COMMAND_PALETTE_LIST );
+	if ( commandPaletteListElement ) {
+		commandPaletteListElement.removeEventListener( 'click', trackCommandPaletteSelected );
+	}
+
+	const commandPaletteRootElement = document.querySelector( SELECTORS.COMMAND_PALETTE_ROOT );
+	if ( commandPaletteRootElement ) {
+		commandPaletteRootElement.removeEventListener( 'keydown', trackCommandPaletteSelected );
+	}
+};
+
+/**
  * Tracker can be
  * - string - which means it is an event name and should be tracked as such automatically
  * - function - in case you need to load additional properties from the action.
@@ -832,7 +932,7 @@ const REDUX_TRACKING = {
 		moveBlocksDown: getBlocksTracker( 'wpcom_block_moved_down' ),
 		removeBlocks: trackBlockRemoval,
 		removeBlock: trackBlockRemoval,
-		moveBlockToPosition: getBlocksTracker( 'wpcom_block_moved_via_dragging' ),
+		moveBlocksToPosition: trackBlockDragDrop,
 		insertBlock: trackBlockInsertion,
 		insertBlocks: trackBlockInsertion,
 		replaceBlock: trackBlockReplacement,
@@ -856,6 +956,10 @@ const REDUX_TRACKING = {
 	'core/interface': {
 		enableComplementaryArea: trackEnableComplementaryArea,
 		disableComplementaryArea: trackDisableComplementaryArea,
+	},
+	'core/commands': {
+		open: trackCommandPaletteOpen,
+		close: trackCommandPaletteClose,
 	},
 };
 

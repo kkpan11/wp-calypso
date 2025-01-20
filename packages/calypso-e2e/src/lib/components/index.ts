@@ -3,7 +3,7 @@ export * from './navbar-component';
 export * from './navbar-cart-component';
 export * from './comments-component';
 export * from './sidebar-component';
-export * from './support-component';
+export * from './help-center';
 export * from './preview-component';
 export * from './notifications-component';
 export * from './site-select-component';
@@ -36,6 +36,7 @@ export * from './full-side-editor-nav-sidebar-component';
 export * from './full-side-editor-data-views-component';
 export * from './editor-dimensions-component';
 export * from './jetpack-instant-search-modal-component';
+export * from './wp-admin-notice-component';
 
 export * from './me';
 

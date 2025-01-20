@@ -61,7 +61,7 @@ const StyledGridicon = styled( Gridicon )`
 	color: var( --color-neutral-10 );
 `;
 
-const HelpBuble = styled( InfoPopover )`
+const HelpBubble = styled( InfoPopover )`
 	margin-left: 7px;
 	display: flex;
 	align-items: center;
@@ -73,19 +73,30 @@ const HelpBuble = styled( InfoPopover )`
 	}
 `;
 
+const StyledIcon = styled.div`
+	margin-right: 10px;
+`;
+
 const renderHelpBubble = ( item: Item ) => {
 	if ( ! item.helpBubble ) {
 		return null;
 	}
 
 	return (
-		<HelpBuble icon="help-outline" position="right">
+		<HelpBubble icon="help-outline" position="right">
 			{ item.helpBubble }
-		</HelpBuble>
+		</HelpBubble>
 	);
 };
 
-export type Item = { label: string; href?: string; helpBubble?: React.ReactElement };
+export type Item = {
+	label: string;
+	href?: string;
+	helpBubble?: React.ReactElement;
+	icon?: React.ReactElement;
+	onClick?: () => void;
+	className?: string;
+};
 interface Props {
 	items: Item[];
 	mobileItem?: Item;
@@ -108,6 +119,7 @@ const Breadcrumb: React.FunctionComponent< Props > = ( props ) => {
 		const [ item ] = items;
 		return (
 			<StyledItem>
+				{ item.icon && <StyledIcon>{ item.icon }</StyledIcon> }
 				<StyledRootLabel>{ item.label }</StyledRootLabel>
 				{ renderHelpBubble( item ) }
 			</StyledItem>
@@ -116,9 +128,10 @@ const Breadcrumb: React.FunctionComponent< Props > = ( props ) => {
 
 	if ( compact ) {
 		const urlBack = mobileItem?.href ?? items[ items.length - 2 ].href;
+		const onClick = mobileItem?.onClick ?? items[ items.length - 2 ].onClick;
 		const label = mobileItem?.label ?? translate( 'Back' );
 		return (
-			<StyledBackLink className="breadcrumbs-back" href={ urlBack }>
+			<StyledBackLink className="breadcrumbs-back" href={ urlBack } onClick={ onClick }>
 				<Gridicon icon="chevron-left" size={ 18 } />
 				{ label }
 			</StyledBackLink>
@@ -127,11 +140,14 @@ const Breadcrumb: React.FunctionComponent< Props > = ( props ) => {
 
 	return (
 		<StyledUl className="breadcrumbs">
-			{ items.map( ( item: { href?: string; label: string }, index: Key ) => (
-				<StyledLi key={ index }>
+			{ items.map( ( item: Item, index: Key ) => (
+				<StyledLi key={ index } className={ item.className }>
+					{ item.icon && <StyledIcon>{ item.icon }</StyledIcon> }
 					{ index !== 0 && <StyledGridicon icon="chevron-right" size={ 14 } /> }
 					{ item.href && index !== items.length - 1 ? (
-						<a href={ item.href }>{ item.label }</a>
+						<a href={ item.href } onClick={ item.onClick }>
+							{ item.label }
+						</a>
 					) : (
 						<span>{ item.label }</span>
 					) }

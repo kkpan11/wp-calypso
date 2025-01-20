@@ -13,12 +13,14 @@ import isJetpackModuleActive from 'calypso/state/selectors/is-jetpack-module-act
 import { isJetpackSite as isJetpackSiteSelector } from 'calypso/state/sites/selectors';
 import { getSelectedSiteId } from 'calypso/state/ui/selectors';
 import wrapSettingsForm from '../wrap-settings-form';
+import { BylineSettings } from './BylineSettings';
 import { EmailsTextSetting } from './EmailsTextSetting';
 import { ExcerptSetting } from './ExcerptSetting';
 import { FeaturedImageEmailSetting } from './FeaturedImageEmailSetting';
 import { PaidNewsletterSection } from './PaidNewsletterSection';
 import { ReplyToSetting } from './ReplyToSetting';
 import { SenderNameSetting } from './SenderNameSetting';
+import { SubscribeFloatingButtonSetting } from './SubscribeFloatingButtonSetting';
 import { SubscribeModalOnCommentSetting } from './SubscribeModalOnCommentSetting';
 import { SubscribeModalSetting } from './SubscribeModalSetting';
 import { SubscribeNavigationSetting } from './SubscribeNavigationSetting';
@@ -26,6 +28,7 @@ import { SubscribeOverlaySetting } from './SubscribeOverlaySetting';
 import { SubscribePostEndSetting } from './SubscribePostEndSetting';
 import { SubscriberLoginNavigationSetting } from './SubscriberLoginNavigationSetting';
 import { NewsletterCategoriesSection } from './newsletter-categories-section';
+import './style.scss';
 
 const defaultNewsletterCategoryIds: number[] = [];
 
@@ -45,10 +48,15 @@ type Fields = {
 	jetpack_subscriptions_from_name?: string;
 	sm_enabled?: boolean;
 	jetpack_subscribe_overlay_enabled?: boolean;
+	jetpack_subscribe_floating_button_enabled?: boolean;
 	jetpack_subscriptions_subscribe_post_end_enabled?: boolean;
 	jetpack_subscriptions_subscribe_navigation_enabled?: boolean;
 	jetpack_subscriptions_login_navigation_enabled?: boolean;
 	jetpack_verbum_subscription_modal?: boolean;
+	jetpack_gravatar_in_email?: boolean;
+	jetpack_author_in_email?: boolean;
+	jetpack_post_date_in_email?: boolean;
+	date_format?: string;
 };
 
 const getFormSettings = ( settings?: Fields ) => {
@@ -66,10 +74,15 @@ const getFormSettings = ( settings?: Fields ) => {
 		jetpack_subscriptions_from_name,
 		sm_enabled,
 		jetpack_subscribe_overlay_enabled,
+		jetpack_subscribe_floating_button_enabled,
 		jetpack_subscriptions_subscribe_post_end_enabled,
 		jetpack_subscriptions_subscribe_navigation_enabled,
 		jetpack_subscriptions_login_navigation_enabled,
 		jetpack_verbum_subscription_modal,
+		jetpack_gravatar_in_email,
+		jetpack_author_in_email,
+		jetpack_post_date_in_email,
+		date_format,
 	} = settings;
 
 	return {
@@ -82,6 +95,7 @@ const getFormSettings = ( settings?: Fields ) => {
 		jetpack_subscriptions_from_name: jetpack_subscriptions_from_name || '',
 		sm_enabled: !! sm_enabled,
 		jetpack_subscribe_overlay_enabled: !! jetpack_subscribe_overlay_enabled,
+		jetpack_subscribe_floating_button_enabled: !! jetpack_subscribe_floating_button_enabled,
 		jetpack_subscriptions_subscribe_post_end_enabled:
 			!! jetpack_subscriptions_subscribe_post_end_enabled,
 		jetpack_subscriptions_subscribe_navigation_enabled:
@@ -89,6 +103,10 @@ const getFormSettings = ( settings?: Fields ) => {
 		jetpack_subscriptions_login_navigation_enabled:
 			!! jetpack_subscriptions_login_navigation_enabled,
 		jetpack_verbum_subscription_modal: !! jetpack_verbum_subscription_modal,
+		jetpack_gravatar_in_email: !! jetpack_gravatar_in_email,
+		jetpack_author_in_email: !! jetpack_author_in_email,
+		jetpack_post_date_in_email: !! jetpack_post_date_in_email,
+		date_format: date_format || '',
 	};
 };
 
@@ -100,6 +118,7 @@ type NewsletterSettingsFormProps = {
 	isSavingSettings: boolean;
 	settings: { subscription_options?: SubscriptionOptions };
 	updateFields: ( fields: Fields ) => void;
+	errorNotice: ( text: string ) => void;
 };
 
 const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
@@ -110,6 +129,7 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 	isSavingSettings,
 	settings,
 	updateFields,
+	errorNotice,
 }: NewsletterSettingsFormProps ) => {
 	const translate = useTranslate();
 	const siteId = useSelector( getSelectedSiteId );
@@ -122,10 +142,15 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 		subscription_options,
 		sm_enabled,
 		jetpack_subscribe_overlay_enabled,
+		jetpack_subscribe_floating_button_enabled,
 		jetpack_subscriptions_subscribe_post_end_enabled,
 		jetpack_subscriptions_subscribe_navigation_enabled,
 		jetpack_subscriptions_login_navigation_enabled,
 		jetpack_verbum_subscription_modal,
+		jetpack_gravatar_in_email,
+		jetpack_author_in_email,
+		jetpack_post_date_in_email,
+		date_format,
 	} = fields;
 
 	const isSubscriptionModuleInactive = useSelector( ( state ) => {
@@ -162,15 +187,31 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 		scrollToAnchor( { offset: 15 } );
 	}, [ savedSubscriptionOptions, updateFields ] );
 
+	const onSubmit = ( event?: React.FormEvent | React.MouseEvent ) => {
+		event?.preventDefault();
+
+		if (
+			fields.wpcom_newsletter_categories_enabled &&
+			! fields.wpcom_newsletter_categories?.length
+		) {
+			errorNotice(
+				translate( 'Please select at least one category when newsletter categories are enabled.' )
+			);
+			return;
+		}
+
+		handleSubmitForm();
+	};
+
 	return (
-		<form onSubmit={ handleSubmitForm }>
+		<form onSubmit={ onSubmit }>
 			{ siteId && <QueryJetpackModules siteId={ siteId } /> }
 
 			<SettingsSectionHeader
 				disabled={ disabled }
 				id="subscriptions"
 				isSaving={ isSavingSettings }
-				onButtonClick={ handleSubmitForm }
+				onButtonClick={ onSubmit }
 				showButton
 				title={ translate( 'Subscriptions' ) }
 			/>
@@ -190,6 +231,11 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 					disabled={ disabled }
 					handleToggle={ handleToggle }
 					value={ jetpack_subscribe_overlay_enabled }
+				/>
+				<SubscribeFloatingButtonSetting
+					disabled={ disabled }
+					handleToggle={ handleToggle }
+					value={ jetpack_subscribe_floating_button_enabled }
 				/>
 				<FormLabel>{ translate( 'Navigation' ) }</FormLabel>
 				<SubscribeNavigationSetting
@@ -224,7 +270,7 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 				disabled={ disabled }
 				id="email-settings"
 				isSaving={ isSavingSettings }
-				onButtonClick={ handleSubmitForm }
+				onButtonClick={ onSubmit }
 				showButton
 				title={ translate( 'Email' ) }
 			/>
@@ -233,6 +279,16 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 					disabled={ disabled }
 					handleToggle={ handleToggle }
 					value={ wpcom_featured_image_in_email }
+				/>
+			</Card>
+			<Card className="site-settings__card">
+				<BylineSettings
+					disabled={ disabled }
+					handleToggle={ handleToggle }
+					showAvatarValue={ jetpack_gravatar_in_email }
+					showAuthorValue={ jetpack_author_in_email }
+					showDateValue={ jetpack_post_date_in_email }
+					dateFormat={ date_format }
 				/>
 			</Card>
 			<Card className="site-settings__card">
@@ -261,7 +317,7 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 				id="newsletter-categories-settings"
 				title={ translate( 'Newsletter categories' ) }
 				showButton
-				onButtonClick={ handleSubmitForm }
+				onButtonClick={ onSubmit }
 				disabled={ disabled }
 				isSaving={ isSavingSettings }
 			/>
@@ -276,7 +332,7 @@ const NewsletterSettingsForm = wrapSettingsForm( getFormSettings )( ( {
 				disabled={ disabled }
 				id="messages"
 				isSaving={ isSavingSettings }
-				onButtonClick={ handleSubmitForm }
+				onButtonClick={ onSubmit }
 				showButton
 				title={ translate( 'Messages' ) }
 			/>

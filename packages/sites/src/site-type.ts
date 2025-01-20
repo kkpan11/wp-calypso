@@ -17,4 +17,10 @@ export interface MinimumSite {
 		is_redirect?: boolean;
 		updated_at?: string;
 	};
+	plan?: {
+		product_name_short: string;
+	};
+	site_migration?: {
+		migration_status?: string;
+	};
 }

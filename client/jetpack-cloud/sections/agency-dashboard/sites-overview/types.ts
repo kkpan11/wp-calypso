@@ -112,6 +112,7 @@ export interface Site {
 	hosting_provider_guess: string;
 	has_paid_agency_monitor: boolean;
 	is_atomic: boolean;
+	is_simple?: boolean;
 	has_pending_boost_one_time_score: boolean;
 	has_vulnerable_plugins: boolean;
 	latest_scan_has_threats_found: boolean;
@@ -227,7 +228,8 @@ export type AllowedActionTypes =
 	| 'change_domain'
 	| 'hosting_configuration'
 	| 'remove_site'
-	| 'prepare_for_launch';
+	| 'prepare_for_launch'
+	| 'delete_site';
 
 export type ActionEventNames = {
 	[ key in AllowedActionTypes ]: { small_screen: string; large_screen: string };
@@ -247,7 +249,6 @@ export interface DashboardOverviewContextInterface {
 		showOnlyDevelopmentSites: boolean;
 	};
 	sort?: DashboardSortInterface;
-	showSitesDashboardV2: boolean;
 }
 
 export interface SitesOverviewContextInterface extends DashboardOverviewContextInterface {

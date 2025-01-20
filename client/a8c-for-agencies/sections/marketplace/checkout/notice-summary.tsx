@@ -88,15 +88,22 @@ export default function NoticeSummary( { type }: Props ) {
 						}
 					),
 					translate(
-						'You will be billed on the first of every month. Your first bill will include a prorated amount for the current month, depending on which day you purchased these products. '
+						"{{strong}}You won't be billed today.{{/strong}} Invoices are sent on the first of every month and are based on the number of days your product licenses were active in the previous month. Your first invoice will be prorated.",
+						{
+							components: {
+								strong: <strong />,
+							},
+						}
 					),
 				];
 			case 'request-client-payment':
 				return [
 					translate(
-						"Your client will be sent an invoice where they will be asked to create a WordPress.com account to pay for these products. Once paid, you'll be able to manage these products on behalf of the client."
+						'Your client will be sent an invoice asking them to create a WordPress.com account to pay for these products. They will be invoiced at the start of each month until they choose to cancel. Depending on how many days are left in the month, your client may be charged less than the total above for their first invoice.'
 					),
-					translate( 'The client can cancel their products at any time.' ),
+					translate(
+						'Once paid, you can manage these products on behalf of your client. The client can cancel their products at any time.'
+					),
 				];
 
 			case 'request-payment-method':

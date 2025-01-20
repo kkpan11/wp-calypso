@@ -34,6 +34,9 @@ import {
 	PLAN_JETPACK_COMPLETE_BI_YEARLY,
 	PLAN_JETPACK_COMPLETE,
 	PLAN_JETPACK_COMPLETE_MONTHLY,
+	PLAN_JETPACK_GROWTH_MONTHLY,
+	PLAN_JETPACK_GROWTH_YEARLY,
+	PLAN_JETPACK_GROWTH_BI_YEARLY,
 	PRODUCT_WPCOM_SEARCH,
 	PRODUCT_JETPACK_SEARCH_FREE,
 	PRODUCT_WPCOM_SEARCH_MONTHLY,
@@ -156,6 +159,7 @@ import {
 	PRODUCT_JETPACK_SOCIAL_V1_BI_YEARLY,
 	PRODUCT_JETPACK_SOCIAL_V1_YEARLY,
 	PRODUCT_JETPACK_SOCIAL_V1_MONTHLY,
+	PRODUCT_WOOCOMMERCE_PRODUCT_FILTERS,
 } from './constants';
 import type { FAQ, SelectorProductFeaturesItem } from './types';
 import type { TranslateResult } from 'i18n-calypso';
@@ -1104,6 +1108,9 @@ export const getJetpackProductsLightboxDescription = (): Record< string, Transla
 	const woocommerceWoopaymentsLightboxDescription = translate(
 		'The only payment solution fully integrated to Woo. Accept credit/debit cards and local payment options with no setup or monthly fees.'
 	);
+	const woocommercProductFiltersLightboxDescription = translate(
+		'This is a tool to create ajax product filters that make the process of finding products in your store simple and fast.'
+	);
 
 	return {
 		[ PRODUCT_JETPACK_AI_MONTHLY ]: aiAssistantLightboxDescription,
@@ -1220,6 +1227,7 @@ export const getJetpackProductsLightboxDescription = (): Record< string, Transla
 			woocommerceAccommodationsBookingsLightboxDescription,
 		[ PRODUCT_WOOCOMMERCE_TAX ]: woocommerceTaxLightboxDescription,
 		[ PRODUCT_WOOCOMMERCE_WOOPAYMENTS ]: woocommerceWoopaymentsLightboxDescription,
+		[ PRODUCT_WOOCOMMERCE_PRODUCT_FILTERS ]: woocommercProductFiltersLightboxDescription,
 	};
 };
 
@@ -1367,6 +1375,7 @@ export const getJetpackProductsWhatIsIncluded = (): Record< string, Array< Trans
 		translate( 'Facebook' ),
 		translate( 'Instagram' ),
 		translate( 'Threads' ),
+		translate( 'Bluesky' ),
 		translate( 'LinkedIn' ),
 		translate( 'Mastodon' ),
 		translate( 'Tumblr' ),
@@ -2212,6 +2221,15 @@ export const getJetpackPlansAlsoIncludedFeatures = (): Record<
 		translate( 'Downtime monitoring' ),
 		translate( 'CDN (Content Delivery Networks)' ),
 	];
+	const growthPlanIncludesInfo = [
+		translate( 'Display ads with WordAds' ),
+		translate( 'Pay with PayPal' ),
+		translate( 'Paid content gating' ),
+		translate( 'Paywall access' ),
+		translate( 'Newsletter' ),
+		translate( 'Priority support' ),
+		translate( '2% transaction fees' ),
+	];
 
 	return {
 		[ PLAN_JETPACK_SECURITY_T1_MONTHLY ]: [
@@ -2239,9 +2257,12 @@ export const getJetpackPlansAlsoIncludedFeatures = (): Record<
 			...videoPressFree,
 			...freeBundleFeatures,
 		],
-		[ PLAN_JETPACK_COMPLETE_BI_YEARLY ]: [ ...freeBundleFeatures ],
-		[ PLAN_JETPACK_COMPLETE ]: [ ...freeBundleFeatures ],
-		[ PLAN_JETPACK_COMPLETE_MONTHLY ]: [ ...freeBundleFeatures ],
+		[ PLAN_JETPACK_COMPLETE_BI_YEARLY ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
+		[ PLAN_JETPACK_COMPLETE ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
+		[ PLAN_JETPACK_COMPLETE_MONTHLY ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
+		[ PLAN_JETPACK_GROWTH_MONTHLY ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
+		[ PLAN_JETPACK_GROWTH_YEARLY ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
+		[ PLAN_JETPACK_GROWTH_BI_YEARLY ]: [ ...growthPlanIncludesInfo, ...freeBundleFeatures ],
 	};
 };
 

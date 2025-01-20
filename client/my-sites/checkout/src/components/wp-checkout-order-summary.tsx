@@ -27,11 +27,7 @@ import { Gridicon } from '@automattic/components';
 import { FormStatus, useFormStatus } from '@automattic/composite-checkout';
 import { formatCurrency } from '@automattic/format-currency';
 import { useHasEnTranslation } from '@automattic/i18n-utils';
-import {
-	isNewsletterOrLinkInBioFlow,
-	isAnyHostingFlow,
-	isSenseiFlow,
-} from '@automattic/onboarding';
+import { isNewsletterOrLinkInBioFlow, isAnyHostingFlow } from '@automattic/onboarding';
 import { useShoppingCart } from '@automattic/shopping-cart';
 import {
 	isBillingInfoEmpty,
@@ -288,7 +284,7 @@ function CheckoutSummaryFeaturesWrapper( props: {
 	);
 	const shouldUseFlowFeatureList =
 		isNewsletterOrLinkInBioFlow( signupFlowName ) ||
-		( isSenseiFlow( signupFlowName ) && hasSenseiProductInCart ) ||
+		hasSenseiProductInCart ||
 		( isAnyHostingFlow( signupFlowName ) && planHasHostingFeature );
 	const giftSiteSlug = responseCart.gift_details?.receiver_blog_slug;
 
@@ -411,15 +407,11 @@ export function CheckoutSummaryRefundWindows( {
 	} else {
 		const shortestRefundWindow = Math.min( ...refundWindows );
 
-		text = translate(
-			'%(days)d-day full money back guarantee',
-			'%(days)d-day full money back guarantee',
-			{
-				count: shortestRefundWindow,
-				args: { days: shortestRefundWindow },
-				comment: 'The number of days until the shortest refund window in the cart expires.',
-			}
-		);
+		text = translate( '%(days)d-day money back guarantee', '%(days)d-day money back guarantee', {
+			count: shortestRefundWindow,
+			args: { days: shortestRefundWindow },
+			comment: 'The number of days until the shortest refund window in the cart expires.',
+		} );
 	}
 
 	return (
@@ -948,7 +940,7 @@ const CheckoutSummaryFeaturesListItem = styled( 'li' )< { isSupported?: boolean 
 	padding-left: 24px;
 	position: relative;
 	overflow-wrap: break-word;
-	color: ${ ( props ) => ( props.isSupported ? 'inherit' : 'var( --color-neutral-40 )' ) };
+	color: ${ ( props ) => ( props.isSupported ? 'inherit' : props.theme.colors.textColorLight ) };
 
 	.rtl & {
 		padding-right: 24px;
@@ -1044,7 +1036,7 @@ const LoadingCopy = styled.p`
 const SwitchToAnnualPlanButton = styled.button`
 	text-align: left;
 	text-decoration: underline;
-	color: var( --color-link );
+	color: ${ ( props ) => props.theme.colors.primary };
 	cursor: pointer;
 
 	.rtl & {

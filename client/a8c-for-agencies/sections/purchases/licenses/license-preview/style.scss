@@ -194,6 +194,13 @@ button.button.is-borderless.license-bundle-dropdown__button {
 	}
 }
 
+.license-preview__product-title {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .license-preview__client-email {
 	font-size: 0.75rem;
 	line-height: 1.3;
@@ -215,4 +222,33 @@ button.button.is-borderless.license-bundle-dropdown__button {
 			max-width: 250px;
 		}
 	}
+}
+
+.license-preview__migration-badge {
+	cursor: pointer;
+}
+
+.license-preview__migration-content {
+	min-width: 200px;
+	@include a4a-font-body-md;
+
+	@include break-mobile {
+		min-width: 300px;
+	}
+
+	a,
+	a:visited {
+		display: inline-block;
+		margin-block-start: 10px;
+		color: var(--color-neutral-100);
+		text-decoration: underline;
+	}
+	a:focus {
+		outline: none;
+	}
+}
+
+.license-preview__migration-external-icon {
+	vertical-align: text-bottom;
+	margin-inline-start: 3px;
 }

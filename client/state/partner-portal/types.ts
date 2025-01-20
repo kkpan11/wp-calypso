@@ -99,6 +99,7 @@ export interface APILicense {
 export interface APIProductFamilyProductBundlePrice {
 	quantity: number;
 	amount: string;
+	price_per_unit: number; // price per day in cents
 }
 
 export interface APIProductFamilyProduct {
@@ -108,6 +109,8 @@ export interface APIProductFamilyProduct {
 	currency: string;
 	amount: string;
 	price_interval: string;
+	price_per_unit?: number; // price per day in cents
+	price_per_unit_display?: string;
 	family_slug: string;
 	supported_bundles: APIProductFamilyProductBundlePrice[];
 }
@@ -140,7 +143,7 @@ export interface APIInvoice {
 	id: string;
 	number: string;
 	due_date: string | null;
-	created: string | null;
+	created: number;
 	effective_at: string | null;
 	status: InvoiceStatus;
 	total: number;
@@ -160,7 +163,7 @@ export interface Invoice {
 	id: string;
 	number: string;
 	dueDate: string | null;
-	created: string | null;
+	created: number;
 	effectiveAt: string | null;
 	status: InvoiceStatus;
 	total: number;
@@ -251,7 +254,17 @@ export interface License {
 	ownerType: string | null;
 	quantity: number | null;
 	parentLicenseId: number | null;
+	meta: LicenseMeta;
 	referral: ReferralAPIResponse | null;
+}
+
+export interface LicenseMeta {
+	isDevSite?: boolean;
+	wasDevSite?: boolean;
+	devSitePeriodStart?: string;
+	devSitePeriodEnd?: string;
+	transferredSubscriptionId?: string;
+	transferredSubscriptionExpiration?: string;
 }
 
 export interface LicenseCounts {

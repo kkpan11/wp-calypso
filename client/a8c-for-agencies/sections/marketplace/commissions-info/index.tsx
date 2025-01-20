@@ -11,13 +11,15 @@ export default function CommissionsInfo( { items }: { items: ShoppingCartItem[] 
 	const totalCommissions = items.reduce( ( acc, item ) => {
 		const product = item;
 		const commissionPercentage = getProductCommissionPercentage( product.family_slug );
-		const totalCommissions = product?.amount ? Number( product.amount ) * commissionPercentage : 0;
+		const totalCommissions = product?.amount
+			? Number( product.amount.replace( /,/g, '' ) ) * commissionPercentage
+			: 0;
 		return acc + totalCommissions;
 	}, 0 );
 
 	return (
 		<div className="commissions-info">
-			<span>{ translate( 'Your estimated commision:' ) }</span>
+			<span>{ translate( 'Your estimated commission:' ) }</span>
 			<span>
 				{ translate( '%(total)s/mo', {
 					args: {

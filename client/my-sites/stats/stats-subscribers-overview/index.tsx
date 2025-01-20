@@ -1,4 +1,5 @@
-import { CountComparisonCard } from '@automattic/components';
+import { CountCard } from '@automattic/components';
+import { useTranslate } from 'i18n-calypso';
 import React from 'react';
 import useSubscribersOverview from 'calypso/my-sites/stats/hooks/use-subscribers-overview';
 
@@ -8,19 +9,21 @@ interface SubscribersOverviewProps {
 
 const SubscribersOverview: React.FC< SubscribersOverviewProps > = ( { siteId } ) => {
 	const { isLoading, isError, overviewData } = useSubscribersOverview( siteId );
+	const translate = useTranslate();
 
 	return (
 		<div className="subscribers-overview highlight-cards">
 			<div className="highlight-cards-list">
-				{ overviewData.map( ( { count, heading }, index ) => {
+				{ overviewData.map( ( { count, heading, note }, index ) => {
 					return (
 						// TODO: Communicate loading vs error state to the user.
-						<CountComparisonCard
+						<CountCard
 							key={ index }
 							heading={ heading }
-							count={ isLoading || isError ? null : count }
+							label={ translate( 'subscribers' ) }
+							note={ note }
+							value={ isLoading || isError ? null : count }
 							showValueTooltip
-							icon={ false }
 						/>
 					);
 				} ) }

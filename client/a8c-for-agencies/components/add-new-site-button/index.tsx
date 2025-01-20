@@ -11,6 +11,7 @@ import usePressableOwnershipType from 'calypso/a8c-for-agencies/sections/marketp
 import usePaymentMethod from 'calypso/a8c-for-agencies/sections/purchases/payment-methods/hooks/use-payment-method';
 import devSiteBanner from 'calypso/assets/images/a8c-for-agencies/dev-site-banner.svg';
 import pressableIcon from 'calypso/assets/images/pressable/pressable-icon.svg';
+import { preventWidows } from 'calypso/lib/formatting';
 import { useDispatch } from 'calypso/state';
 import { recordTracksEvent } from 'calypso/state/analytics/actions';
 import A4ALogo from '../a4a-logo';
@@ -130,23 +131,11 @@ export default function AddNewSiteButton( {
 					{ translate( 'Add existing sites' ).toUpperCase() }
 				</div>
 				{ menuItem( {
-					icon: <WordPressLogo />,
-					heading: translate( 'Via WordPress.com' ),
-					description: translate( 'Add sites bought on{{nbsp/}}WordPress.com', {
-						components: { nbsp: <>&nbsp;</> },
-						comment: 'nbsp is a non-breaking space character',
-					} ),
-					buttonProps: {
-						onClick: handleImportFromWPCOM,
-					},
-				} ) }
-				{ menuItem( {
 					icon: <A4ALogo />,
 					heading: translate( 'Via the Automattic plugin' ),
-					description: translate( 'Connect with the Automattic for Agencies{{nbsp/}}plugin', {
-						components: { nbsp: <>&nbsp;</> },
-						comment: 'nbsp is a non-breaking space character',
-					} ),
+					description: preventWidows(
+						translate( 'Connect with the Automattic for Agencies plugin' )
+					),
 					buttonProps: {
 						onClick: () => {
 							setShowA4AConnectionModal( true );
@@ -155,9 +144,19 @@ export default function AddNewSiteButton( {
 					},
 				} ) }
 				{ menuItem( {
+					icon: <WordPressLogo />,
+					heading: translate( 'Via WordPress.com' ),
+					description: preventWidows( translate( 'Add sites already connected to WordPress.com' ) ),
+					buttonProps: {
+						onClick: handleImportFromWPCOM,
+					},
+				} ) }
+				{ menuItem( {
 					icon: <JetpackLogo />,
 					heading: translate( 'Via Jetpack' ),
-					description: translate( 'Import one or more Jetpack connected sites' ),
+					description: preventWidows(
+						translate( 'Add a site by remotely installing the Jetpack plugin' )
+					),
 					buttonProps: {
 						onClick: () => {
 							setShowJetpackConnectionModal( true );
@@ -207,13 +206,13 @@ export default function AddNewSiteButton( {
 			{ devSitesEnabled && (
 				<div className="site-selector-and-importer__popover-column">
 					{ menuItem( {
-						icon: <img src={ devSiteBanner } alt="WordPress.com Development Site" />,
-						heading: translate( 'WordPress.com Development Site' ),
+						icon: <img src={ devSiteBanner } alt="Start Building for Free" />,
+						heading: translate( 'Start Building for Free' ),
 						description: translate(
-							'Try our hosting for free indefinitely.{{br/}}Only pay when you launch.',
+							'Develop up to 5 WordPress.com sites at{{nbsp/}}once with free development licenses.{{br/}}Only pay when you launch!',
 							{
-								components: { br: <br /> },
-								comment: 'br is a line break',
+								components: { br: <br />, nbsp: <>&nbsp;</> },
+								comment: 'br is a line break, nbsp is a non-breaking space character',
 							}
 						),
 						disabled: ! hasAvailableDevSites,
@@ -237,17 +236,12 @@ export default function AddNewSiteButton( {
 						extraContent: (
 							<div>
 								<div className="site-selector-and-importer__popover-site-count">
-									{ translate(
-										'%(pendingSites)d site available',
-										'%(pendingSites)d sites available',
-										{
-											args: {
-												pendingSites: availableDevSites,
-											},
-											count: availableDevSites,
-											comment: '%(pendingSites)s is the number of sites available.',
-										}
-									) }
+									{ translate( '%(pendingSites)d of 5 free licenses available', {
+										args: {
+											pendingSites: availableDevSites,
+										},
+										comment: '%(pendingSites)s is the number of free licenses available.',
+									} ) }
 								</div>
 								<div
 									className={ clsx( 'site-selector-and-importer__popover-development-site-cta', {

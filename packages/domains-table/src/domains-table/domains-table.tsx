@@ -68,8 +68,14 @@ interface BaseDomainsTableProps {
 	fetchBulkActionStatus?: () => Promise< BulkDomainUpdateStatusQueryFnData >;
 	deleteBulkActionStatus?: () => Promise< void >;
 	currentUserCanBulkUpdateContactInfo?: boolean;
+	sidebarMode?: boolean;
+	selectedDomainName?: string;
+	selectedFeature?: string;
+	isHostingOverview?: boolean;
+	context?: DomainsTableContext;
 }
 
+export type DomainsTableContext = 'site' | 'domains' | string;
 export type DomainsTableProps =
 	| ( BaseDomainsTableProps & { isAllSitesView: true } )
 	| ( BaseDomainsTableProps & { isAllSitesView: false; siteSlug: string | null } );
@@ -123,6 +129,10 @@ type Value = {
 	currentUsersOwnsAllSelectedDomains: boolean;
 	currentUserCanBulkUpdateContactInfo: boolean;
 	isCompact: boolean;
+	currentlySelectedDomainName?: string;
+	selectedFeature?: string;
+	isHostingOverview?: boolean;
+	context?: DomainsTableContext;
 };
 
 export const DomainsTableStateContext = createContext< Value | undefined >( undefined );
@@ -144,6 +154,11 @@ export const useGenerateDomainsTableState = ( props: DomainsTableProps ) => {
 		userCanSetPrimaryDomains,
 		isLoadingDomains,
 		currentUserCanBulkUpdateContactInfo = false,
+		sidebarMode = false,
+		selectedDomainName,
+		selectedFeature,
+		isHostingOverview = false,
+		context,
 	} = props;
 
 	const [ { sortKey, sortDirection }, setSort ] = useState< {
@@ -240,6 +255,19 @@ export const useGenerateDomainsTableState = ( props: DomainsTableProps ) => {
 		domainsTableColumns = removeColumns( domainsTableColumns, 'owner' );
 	}
 
+	if ( sidebarMode ) {
+		// Remove all columns except for domain and action.
+		domainsTableColumns = removeColumns(
+			domainsTableColumns,
+			'site',
+			'owner',
+			'ssl',
+			'expire_renew',
+			'status',
+			'status_action'
+		);
+	}
+
 	const sortedDomains = useMemo( () => {
 		if ( ! domains ) {
 			return;
@@ -305,7 +333,7 @@ export const useGenerateDomainsTableState = ( props: DomainsTableProps ) => {
 
 	const hasSelectedDomains = selectedDomains.size > 0;
 	const selectableDomains = ( domains ?? [] ).filter( canBulkUpdate );
-	const canSelectAnyDomains = selectableDomains.length > 1;
+	const canSelectAnyDomains = selectableDomains.length > 1 && ! sidebarMode;
 	const areAllDomainsSelected = selectableDomains.length === selectedDomains.size;
 
 	const getBulkSelectionStatus = () => {
@@ -431,6 +459,10 @@ export const useGenerateDomainsTableState = ( props: DomainsTableProps ) => {
 		isLoadingDomains,
 		currentUserCanBulkUpdateContactInfo,
 		isCompact,
+		currentlySelectedDomainName: selectedDomainName,
+		selectedFeature,
+		isHostingOverview,
+		context,
 	};
 
 	return value;

@@ -4,7 +4,7 @@
 @import "@automattic/typography/styles/variables";
 @import "@automattic/components/src/styles/typography";
 @import "@automattic/components/src/styles/mixins";
-@import "./variables.scss";
+@import "./variables";
 
 $header-margin-bottom: math.div($vertical-margin, 2);
 
@@ -235,6 +235,7 @@ $highlight-card-tooltip-font: Inter, $sans !default;
 		z-index: z-index("root", ".tooltip.popover.page-modules-settings-popover");
 		.popover__inner {
 			padding: 14px 16px;
+			width: 244px;
 		}
 	}
 
@@ -341,7 +342,7 @@ $highlight-card-tooltip-font: Inter, $sans !default;
 }
 
 .highlight-card-tooltip-content {
-	display: flex;
+	display: block;
 	align-items: center;
 	justify-content: space-between;
 	font-size: $font-body-small;
@@ -395,9 +396,24 @@ $highlight-card-tooltip-font: Inter, $sans !default;
 	color: var(--studio-gray-10);
 }
 
+.highlight-card-tooltip-count-difference-positive {
+	color: var(--studio-green-10);
+}
+
+.highlight-card-tooltip-count-difference-negative {
+	color: var(--studio-red-10);
+}
+
+.highlight-card-tooltip-count-difference-positive svg,
+.highlight-card-tooltip-count-difference-negative svg {
+	fill: currentColor;
+	margin-left: 16px;
+	vertical-align: text-bottom;
+}
+
 .highlight-card-tooltip-note {
-	font-size: $font-body-extra-small;
-	padding-top: 8px;
+	color: var(--studio-gray-30);
+	font-size: $font-body-small;
 }
 .highlight-card__settings-tooltip {
 	.highlight-card-tooltip-content {

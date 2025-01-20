@@ -24,45 +24,82 @@
 			box-shadow: 0 0 17.4px 0 rgba(0, 0, 0, 0.05);
 			height: calc(100vh - var(--masterbar-height) - var(--content-padding-top) - var(--content-padding-bottom));
 			max-width: none;
-			overflow-y: auto;
+			padding-bottom: 0;
+			@media (max-width: $break-mobile), (max-height: $break-mobile) {
+				overflow-y: auto;
+				overflow-x: hidden;
+			}
 		}
 
+		.theme-showcase {
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+		}
+		.themes__header-navigation-container {
+			@media (min-width: $break-small) {
+				border-block-end: 1px solid var(--color-neutral-5);
+			}
+		}
 		.navigation-header {
 			padding-top: 24px;
-			padding-inline: 16px;
+			padding-inline: 48px;
+			@media (max-width: 402px) {
+				padding-inline: 24px;
+			}
 
 			.navigation-header__main {
 				align-items: center;
-			}
-
-			@include break-medium {
-				border-block-end: 1px solid var(--color-border-secondary);
-			}
-
-			@include break-huge {
-				padding-inline: 64px;
-			}
-
-			@include break-xhuge {
-				max-width: 100%;
-
-				.navigation-header__main {
-					max-width: 1400px;
-					margin: 0 auto;
-					padding-inline: 64px;
-				}
+				height: 40px;
 			}
 
 			.formatted-header__title {
 				font-size: 1.5rem;
-				line-height: 1.2;
+				font-weight: 500;
+				line-height: 1.25;
+				letter-spacing: -0.5px;
+			}
+
+			.formatted-header__subtitle {
+				display: none;
 			}
 		}
 
 		.themes__content {
+			display: flex;
+			flex-direction: column;
+			flex-grow: 1;
 			margin-top: 40px;
-			padding-left: 2rem;
-			padding-right: 2rem;
+			min-height: 0;
+			@media (max-width: $break-small) {
+				margin-top: 10px;
+			}
+			.themes__showcase {
+				flex-grow: 1;
+				min-height: 0;
+			}
+			.themes__controls,
+			.themes__showcase {
+				@media (max-width: $break-small) {
+					padding: 0;
+				}
+			}
+
+			.theme-showcase__all-themes {
+				@media (min-width: $break-mobile) and (min-height: $break-mobile) {
+					overflow-y: auto;
+				}
+				height: 100%;
+			}
+
+			.themes__controls .theme__search-container, .themes__controls .themes__filters, .themes__showcase .theme-showcase__all-themes {
+				margin: 0 auto;
+				padding-inline: 48px;
+				@media (max-width: 402px) {
+					padding-inline: 24px;
+				}
+				box-sizing: border-box;
+			}
 		}
 	}
 
@@ -516,6 +553,51 @@
 	.themes__showcase {
 		@media (max-width: $break-small) {
 			padding: 0 16px;
+		}
+	}
+
+	.themes__controls.is-sticky:not(.is-global-sidebar-visible) {
+		@include break-medium {
+			position: fixed;
+			left: var(--sidebar-width-max);
+			top: var(--masterbar-height);
+			width: calc(100vw - var(--sidebar-width-max) - 16px);
+			padding: 24px 32px 8px 33px;
+			border-bottom: 1px solid var(--studio-gray-5);
+			box-sizing: border-box;
+			background: var(--studio-white);
+			z-index: 20;
+
+			.is-global-sidebar-visible & {
+				border-bottom: initial;
+				position: static;
+				width: auto;
+				padding: 0;
+			}
+		}
+	}
+
+	.themes__controls-placeholder {
+		.is-logged-out & {
+			display: none;
+		}
+
+		@include break-medium {
+			padding-top: 24px;
+			margin-top: -24px;
+			box-sizing: content-box;
+
+			.is-global-sidebar-visible & {
+				padding-top: 40px;
+				margin-top: -40px;
+				&.is-sticky {
+					height: auto;
+				}
+			}
+
+			&.is-sticky {
+				height: 101px;
+			}
 		}
 	}
 }

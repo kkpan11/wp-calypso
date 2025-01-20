@@ -11,7 +11,7 @@ import {
 } from 'calypso/data/hosting/use-cache';
 import { navigate } from 'calypso/lib/navigate';
 import wpcom from 'calypso/lib/wp';
-import { useOpenPhpMyAdmin } from 'calypso/my-sites/hosting/phpmyadmin-card';
+import { useOpenPhpMyAdmin } from 'calypso/sites/tools/database/form';
 import { useDispatch } from 'calypso/state';
 import { clearWordPressCache } from 'calypso/state/hosting/actions';
 import { createNotice, removeNotice } from 'calypso/state/notices/actions';

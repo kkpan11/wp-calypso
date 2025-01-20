@@ -20,7 +20,7 @@ const ComponentWrapper = ( props: Omit< FeaturesGridExternalProps, 'gridPlans' >
 		isSubdomainNotGenerated: false,
 		selectedFeature: undefined,
 		selectedPlan: undefined,
-		storageAddOns: [],
+		reflectStorageSelectionInPlanPrices: false,
 		term: 'TERM_ANNUALLY',
 		useFreeTrialPlanSlugs: undefined,
 
@@ -41,6 +41,8 @@ const ComponentWrapper = ( props: Omit< FeaturesGridExternalProps, 'gridPlans' >
 		isSpotlightOnCurrentPlan: true,
 	} );
 
+	const featureGroupMap = getPlanFeaturesGroupedForFeaturesGrid();
+
 	return (
 		gridPlans && (
 			<FeaturesGrid
@@ -49,6 +51,7 @@ const ComponentWrapper = ( props: Omit< FeaturesGridExternalProps, 'gridPlans' >
 				gridPlanForSpotlight={
 					'gridPlanForSpotlight' in props ? props.gridPlanForSpotlight : gridPlanForSpotlight
 				}
+				featureGroupMap={ featureGroupMap }
 			/>
 		)
 	);
@@ -58,7 +61,6 @@ const defaultProps = {
 	allFeaturesList: getFeaturesList(),
 	coupon: undefined,
 	currentSitePlanSlug: undefined,
-	featureGroupMap: getPlanFeaturesGroupedForFeaturesGrid(),
 	generatedWPComSubdomain: {
 		isLoading: false,
 		result: { domain_name: 'zzz.wordpress.com' },
@@ -84,6 +86,11 @@ const defaultProps = {
 		},
 		postButtonText: '',
 	} ),
+	enableCategorisedFeatures: true,
+	enableStorageAsBadge: false,
+	enableReducedFeatureGroupSpacing: true,
+	enableLogosOnlyForEnterprisePlan: true,
+	hideFeatureGroupTitles: true,
 };
 
 const meta = {

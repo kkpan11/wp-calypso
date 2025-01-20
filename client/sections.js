@@ -17,13 +17,13 @@ const sections = [
 	{
 		name: 'sites-dashboard',
 		paths: [ '/sites' ],
-		module: 'calypso/hosting/sites',
+		module: 'calypso/sites',
 		group: 'sites-dashboard',
 	},
 	{
 		name: 'sites-dashboard',
 		paths: [ '/p2s' ],
-		module: 'calypso/hosting/sites',
+		module: 'calypso/sites',
 		group: 'sites-dashboard',
 	},
 	{
@@ -39,6 +39,9 @@ const sections = [
 	},
 	{
 		name: 'account-close',
+		// /me/account/closed enables account restoration for logged-out users
+		// Parent route is private so enableLoggedOut flag won't work here
+		// Redirection is handled in redirectLoggedOut
 		paths: [ '/me/account/close', '/me/account/closed' ],
 		module: 'calypso/me/account-close',
 		group: 'me',
@@ -416,6 +419,7 @@ const sections = [
 		group: 'reader',
 		enableLoggedOut: true,
 		trackLoadPerformance: true,
+		isomorphic: true,
 	},
 	{
 		name: 'reader',
@@ -574,6 +578,30 @@ const sections = [
 		group: 'sites',
 	},
 	{
+		name: 'site-tools',
+		paths: [ '/sites/tools' ],
+		module: 'calypso/sites/tools',
+		group: 'sites',
+	},
+	{
+		name: 'site-overview',
+		paths: [ '/sites/overview' ],
+		module: 'calypso/sites/overview',
+		group: 'sites',
+	},
+	{
+		name: 'site-marketing',
+		paths: [ '/sites/marketing' ],
+		module: 'calypso/sites/marketing',
+		group: 'sites',
+	},
+	{
+		name: 'site-settings',
+		paths: [ '/sites/settings' ],
+		module: 'calypso/sites/settings',
+		group: 'sites',
+	},
+	{
 		name: 'backup',
 		paths: [ '/backup' ],
 		module: 'calypso/my-sites/backup',
@@ -660,12 +688,6 @@ const sections = [
 		group: 'jetpack-cloud',
 	},
 	{
-		name: 'jetpack-cloud-agency-sites-v2',
-		paths: [ '/sites' ],
-		module: 'calypso/jetpack-cloud/sections/agency-dashboard',
-		group: 'jetpack-cloud',
-	},
-	{
 		name: 'jetpack-cloud-partner-portal',
 		paths: [ '/partner-portal' ],
 		module: 'calypso/jetpack-cloud/sections/partner-portal',
@@ -722,25 +744,31 @@ const sections = [
 	{
 		name: 'site-monitoring',
 		paths: [ '/site-monitoring' ],
-		module: 'calypso/site-monitoring',
+		module: 'calypso/hosting/monitoring',
+		group: 'sites',
+	},
+	{
+		name: 'site-performance',
+		paths: [ '/sites/performance' ],
+		module: 'calypso/hosting/performance',
 		group: 'sites',
 	},
 	{
 		name: 'site-logs',
 		paths: [ '/site-logs' ],
-		module: 'calypso/site-logs',
+		module: 'calypso/hosting/logs',
 		group: 'sites',
 	},
 	{
 		name: 'github-deployments',
 		paths: [ '/github-deployments' ],
-		module: 'calypso/github-deployments',
+		module: 'calypso/hosting/deployments',
 		group: 'sites',
 	},
 	{
 		name: 'staging-site',
 		paths: [ '/staging-site' ],
-		module: 'calypso/staging-site',
+		module: 'calypso/hosting/staging-site',
 		group: 'sites',
 	},
 	{
@@ -825,7 +853,14 @@ const sections = [
 	},
 	{
 		name: 'a8c-for-agencies-migrations',
-		paths: [ '/migrations' ],
+		paths: [
+			'/migrations',
+			'/migrations/overview',
+			'/migrations/overview/migrate-to-pressable',
+			'/migrations/overview/migrate-to-wpcom',
+			'/migrations/commissions',
+			'/migrations/payment-settings',
+		],
 		module: 'calypso/a8c-for-agencies/sections/migrations',
 		group: 'a8c-for-agencies',
 	},
@@ -861,9 +896,16 @@ const sections = [
 			'/client/subscriptions',
 			'/client/payment-methods',
 			'/client/payment-methods/add',
+			'/client/invoices',
 			'/client/checkout',
 		],
 		module: 'calypso/a8c-for-agencies/sections/client',
+		group: 'a8c-for-agencies',
+	},
+	{
+		name: 'a8c-for-agencies-agency-tier',
+		paths: [ '/agency-tier' ],
+		module: 'calypso/a8c-for-agencies/sections/agency-tier',
 		group: 'a8c-for-agencies',
 	},
 ];

@@ -28,14 +28,8 @@ import Main from 'calypso/components/main';
 import NavigationHeader from 'calypso/components/navigation-header';
 import WpAdminAutoLogin from 'calypso/components/wpadmin-auto-login';
 import PageViewTracker from 'calypso/lib/analytics/page-view-tracker';
-import HostingActivateStatus from 'calypso/my-sites/hosting/hosting-activate-status';
-import { TrialAcknowledgeModal } from 'calypso/my-sites/plans/trials/trial-acknowledge/acknowlege-modal';
-import { WithOnclickTrialRequest } from 'calypso/my-sites/plans/trials/trial-acknowledge/with-onclick-trial-request';
 import ActivationModal from 'calypso/my-sites/themes/activation-modal';
-import ThanksModal from 'calypso/my-sites/themes/thanks-modal';
 import { connectOptions } from 'calypso/my-sites/themes/theme-options';
-import { isHostingTrialSite } from 'calypso/sites-dashboard/utils';
-// Necessary for ThanksModal
 import {
 	getEligibility,
 	isEligibleForAutomatedTransfer,
@@ -47,9 +41,6 @@ import {
 } from 'calypso/state/purchases/selectors';
 import isSiteWpcomAtomic from 'calypso/state/selectors/is-site-wpcom-atomic';
 import siteHasFeature from 'calypso/state/selectors/site-has-feature';
-import { requestSite } from 'calypso/state/sites/actions';
-import { fetchSiteFeatures } from 'calypso/state/sites/features/actions';
-import { fetchSitePlans } from 'calypso/state/sites/plans/actions';
 import { isSiteOnECommerceTrial } from 'calypso/state/sites/plans/selectors';
 import {
 	getSiteAdminUrl,
@@ -58,7 +49,7 @@ import {
 	isJetpackSiteMultiSite,
 } from 'calypso/state/sites/selectors';
 import { uploadTheme, clearThemeUpload, initiateThemeTransfer } from 'calypso/state/themes/actions';
-import { getCanonicalTheme } from 'calypso/state/themes/selectors';
+import { getActiveTheme, getCanonicalTheme } from 'calypso/state/themes/selectors';
 import { getBackPath } from 'calypso/state/themes/themes-ui/selectors';
 import {
 	isUploadInProgress,
@@ -69,6 +60,8 @@ import {
 	getUploadProgressTotal,
 	getUploadProgressLoaded,
 	isInstallInProgress,
+	isTransferInProgress,
+	isTransferComplete,
 } from 'calypso/state/themes/upload-theme/selectors';
 import {
 	getSelectedSiteId,
@@ -100,18 +93,11 @@ class Upload extends Component {
 
 	state = {
 		showEligibility: this.props.showEligibility,
-		showTrialAcknowledgeModal: false,
-		isTransferring: false,
-		hasRequestedTrial: false,
-		isTrialSite: this.props.isTrialSite,
 	};
 
 	componentDidMount() {
 		const { siteId, inProgress } = this.props;
 		! inProgress && this.props.clearThemeUpload( siteId );
-		if ( this.props.isAtomic && this.props.canUploadThemesOrPlugins ) {
-			this.redirectToWpAdmin();
-		}
 	}
 
 	// @TODO: Please update https://github.com/Automattic/wp-calypso/issues/58453 if you are refactoring away from UNSAFE_* lifecycle methods!
@@ -130,51 +116,12 @@ class Upload extends Component {
 		this.setState( { showEligibility: false } );
 	};
 
-	setOpenTrialAcknowledgeModal = ( isOpen ) => {
-		this.setState( { showTrialAcknowledgeModal: isOpen } );
-	};
-
-	trialRequested = () => {
-		this.setState( {
-			hasRequestedTrial: true,
-			isTransferring: true,
-			showEligibility: false,
-			isTrialSite: true,
-		} );
-	};
-
-	requestUpdatedSiteData = ( isTransferring, wasTransferring, isTransferCompleted ) => {
-		if ( isTransferring && ! this.state.isTransferring ) {
-			this.setState( {
-				isTransferring: true,
-				showEligibility: false,
-				hasRequestedTrial: true,
-				isTrialSite: true,
-			} );
-		}
-		if ( wasTransferring && isTransferCompleted ) {
-			this.props.fetchUpdatedData();
-			this.setState( { isTransferring: false, showEligibility: false } );
-		}
-	};
-
 	componentDidUpdate( prevProps ) {
-		if (
-			this.props.isAtomic &&
-			this.props.canUploadThemesOrPlugins &&
-			! this.state.hasRequestedTrial
-		) {
-			this.redirectToWpAdmin();
-		}
 		if ( this.props.complete && ! prevProps.complete ) {
 			this.successMessage();
 		} else if ( this.props.failed && ! prevProps.failed ) {
 			this.failureMessage();
 		}
-	}
-
-	redirectToWpAdmin() {
-		window.location = this.props.siteThemeInstallUrl;
 	}
 
 	successMessage() {
@@ -248,15 +195,8 @@ class Upload extends Component {
 		tryandcustomize.action( this.props.themeId );
 	};
 
-	onUpsellNudgeClick = () => {
-		if ( ! this.props.isEligibleForHostingTrial ) {
-			return;
-		}
-		this.setState( { showTrialAcknowledgeModal: true, isTransferring: false } );
-	};
-
 	renderUpgradeBanner() {
-		const { siteSlug, isCommerceTrial, translate, isEligibleForHostingTrial } = this.props;
+		const { siteSlug, isCommerceTrial, translate } = this.props;
 		const redirectTo = encodeURIComponent( `/themes/upload/${ siteSlug }` );
 
 		let upsellPlan = PLAN_BUSINESS;
@@ -273,17 +213,6 @@ class Upload extends Component {
 			upgradeUrl = `/plans/${ siteSlug }`;
 		}
 
-		if ( isEligibleForHostingTrial ) {
-			/* translators: %(planName)s the short-hand version of the Business plan name */
-			title = translate(
-				'Start your free %(planName)s plan trial to access the theme install features',
-				{
-					args: { planName: getPlan( PLAN_BUSINESS )?.getTitle() ?? '' },
-				}
-			);
-			upgradeUrl = '#';
-		}
-
 		return (
 			<UpsellNudge
 				title={ title }
@@ -292,7 +221,6 @@ class Upload extends Component {
 				plan={ upsellPlan }
 				feature={ FEATURE_UPLOAD_THEMES }
 				showIcon
-				onClick={ this.onUpsellNudgeClick }
 			/>
 		);
 	}
@@ -312,9 +240,11 @@ class Upload extends Component {
 				<div className="theme-upload__description">{ theme.description }</div>
 				<div className="theme-upload__action-buttons">
 					<Button onClick={ this.onTryAndCustomizeClick }>{ tryandcustomize.label }</Button>
-					<Button primary onClick={ this.onActivateClick }>
-						{ activate.label }
-					</Button>
+					{ this.props.activeTheme !== theme.id && ! this.props.isThemeTransferCompleted && (
+						<Button primary onClick={ this.onActivateClick }>
+							{ activate.label }
+						</Button>
+					) }
 				</div>
 			</div>
 		);
@@ -333,23 +263,21 @@ class Upload extends Component {
 			uploadedTheme,
 		} = this.props;
 
-		const { showEligibility, hasRequestedTrial, isTransferring } = this.state;
+		const { showEligibility } = this.state;
 
 		const uploadAction = ( siteId, file ) =>
 			isJetpack
 				? this.props.uploadTheme( siteId, file )
 				: this.props.initiateThemeTransfer( siteId, file, '', '', 'theme_upload' );
-		const isTrialRequest = ( isTransferring || hasRequestedTrial ) && ! isAtomic;
 		const isDisabled =
-			! isStandaloneJetpack &&
-			( ! canUploadThemesOrPlugins || ( ! isAtomic && showEligibility ) || isTrialRequest );
+			! isStandaloneJetpack && ( ! canUploadThemesOrPlugins || ( ! isAtomic && showEligibility ) );
 
 		const WrapperComponent = isDisabled ? FeatureExample : Fragment;
 
 		return (
 			<WrapperComponent>
 				<Card>
-					{ ( ( ! inProgress && ! complete ) || isTrialRequest ) && (
+					{ ! inProgress && ! complete && (
 						<AsyncLoad
 							require="calypso/blocks/upload-drop-zone"
 							placeholder={ null }
@@ -357,7 +285,7 @@ class Upload extends Component {
 							disabled={ isDisabled }
 						/>
 					) }
-					{ inProgress && isAtomic && this.renderProgressBar() }
+					{ inProgress && this.renderProgressBar() }
 					{ complete && ! failed && uploadedTheme && this.renderTheme() }
 					{ complete && isAtomic && <WpAdminAutoLogin site={ selectedSite } /> }
 				</Card>
@@ -388,26 +316,15 @@ class Upload extends Component {
 			siteId,
 			themeId,
 			translate,
-			isEligibleForHostingTrial,
-			isAtomic,
 		} = this.props;
 
 		const showUpgradeBanner =
-			( ! isFetchingPurchases && ! canUploadThemesOrPlugins && ! isStandaloneJetpack ) ||
-			isEligibleForHostingTrial;
-		const {
-			showEligibility,
-			showTrialAcknowledgeModal,
-			isTransferring,
-			hasRequestedTrial,
-			isTrialSite,
-		} = this.state;
+			! isFetchingPurchases && ! canUploadThemesOrPlugins && ! isStandaloneJetpack;
+		const { showEligibility } = this.state;
 
 		if ( isMultisite ) {
 			return this.renderNotAvailableForMultisite();
 		}
-
-		const isTrial = isTransferring || isTrialSite || hasRequestedTrial;
 
 		return (
 			<Main className="theme-upload" wideLayout>
@@ -418,7 +335,6 @@ class Upload extends Component {
 				<QueryEligibility siteId={ siteId } />
 				<QueryActiveTheme siteId={ siteId } />
 				{ themeId && complete && <QueryCanonicalTheme siteId={ siteId } themeId={ themeId } /> }
-				<ThanksModal source="upload" />
 				<ActivationModal source="upload" />
 				<NavigationHeader
 					title={ translate( 'Themes' ) }
@@ -435,26 +351,13 @@ class Upload extends Component {
 				></NavigationHeader>
 
 				<HeaderCake backHref={ backPath }>{ translate( 'Install theme' ) }</HeaderCake>
-				{ ! showTrialAcknowledgeModal && ! isAtomic && (
-					<HostingActivateStatus
-						context="theme"
-						onTick={ this.requestUpdatedSiteData }
-						keepAlive={ hasRequestedTrial && ! isAtomic }
-					/>
-				) }
-				{ showUpgradeBanner && ! isTrial && this.renderUpgradeBanner() }
+				{ showUpgradeBanner && this.renderUpgradeBanner() }
 
-				{ showEligibility && ! isTrial && (
+				{ showEligibility && (
 					<EligibilityWarnings backUrl={ backPath } onProceed={ this.onProceedClick } />
 				) }
 
 				{ this.renderUploadCard() }
-				{ isEligibleForHostingTrial && showTrialAcknowledgeModal && (
-					<TrialAcknowledgeModal
-						setOpenModal={ this.setOpenTrialAcknowledgeModal }
-						trialRequested={ this.trialRequested }
-					/>
-				) }
 			</Main>
 		);
 	}
@@ -464,12 +367,12 @@ const ConnectedUpload = connectOptions( Upload );
 
 const UploadWithOptions = ( props ) => {
 	const { siteId, uploadedTheme } = props;
+
 	return <ConnectedUpload { ...props } siteId={ siteId } theme={ uploadedTheme } />;
 };
 
 const mapStateToProps = ( state ) => {
 	const siteId = getSelectedSiteId( state );
-	const site = getSelectedSite( state );
 	const themeId = getUploadedThemeId( state, siteId );
 	const isJetpack = isJetpackSite( state, siteId );
 	const isAtomic = isSiteWpcomAtomic( state, siteId );
@@ -486,10 +389,6 @@ const mapStateToProps = ( state ) => {
 		siteHasFeature( state, siteId, FEATURE_UPLOAD_THEMES ) ||
 		siteHasFeature( state, siteId, FEATURE_UPLOAD_PLUGINS );
 
-	// This value is hardcoded to 'false' to disable the free trial banner
-	// see https://github.com/Automattic/wp-calypso/pull/88490
-	const isEligibleForHostingTrial = false;
-
 	const showEligibility =
 		canUploadThemesOrPlugins && ! isAtomic && ( hasEligibilityMessages || ! isEligible );
 
@@ -505,6 +404,7 @@ const mapStateToProps = ( state ) => {
 		complete: isUploadComplete( state, siteId ),
 		failed: hasUploadFailed( state, siteId ),
 		themeId,
+		activeTheme: getActiveTheme( state, siteId ),
 		isMultisite: isJetpackSiteMultiSite( state, siteId ),
 		uploadedTheme: getCanonicalTheme( state, siteId, themeId ),
 		error: getUploadError( state, siteId ),
@@ -512,14 +412,14 @@ const mapStateToProps = ( state ) => {
 		progressLoaded: getUploadProgressLoaded( state, siteId ),
 		installing: isInstallInProgress( state, siteId ),
 		backPath: getBackPath( state ),
+		isThemeTransferInProgress: isTransferInProgress( state, siteId ),
+		isThemeTransferCompleted: isTransferComplete( state, siteId ),
 		showEligibility,
 		siteAdminUrl: getSiteAdminUrl( state, siteId ),
 		siteThemeInstallUrl: getSiteThemeInstallUrl( state, siteId ),
 		canUploadThemesOrPlugins,
 		isFetchingPurchases:
 			isFetchingSitePurchases( state ) || ! hasLoadedSitePurchasesFromServer( state ),
-		isEligibleForHostingTrial,
-		isTrialSite: isHostingTrialSite( site ),
 	};
 };
 
@@ -530,11 +430,8 @@ const flowRightArgs = [
 		uploadTheme,
 		clearThemeUpload,
 		initiateThemeTransfer,
-		requestSiteById: requestSite,
-		fetchSiteFeatures,
-		fetchSitePlans,
 	} ),
 	localize,
 ];
 
-export default flowRight( ...flowRightArgs )( WithOnclickTrialRequest( UploadWithOptions ) );
+export default flowRight( ...flowRightArgs )( UploadWithOptions );

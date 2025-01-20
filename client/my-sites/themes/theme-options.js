@@ -1,8 +1,11 @@
+import { isEnabled } from '@automattic/calypso-config';
 import {
 	WPCOM_FEATURES_INSTALL_PLUGINS,
 	PLAN_PERSONAL,
 	PLAN_PREMIUM,
 	PLAN_BUSINESS,
+	PLAN_ECOMMERCE,
+	PLAN_ECOMMERCE_TRIAL_MONTHLY,
 	getPlan,
 	TERM_ANNUALLY,
 	findFirstSimilarPlanKey,
@@ -51,6 +54,7 @@ import {
 	isSiteEligibleForManagedExternalThemes,
 	isWpcomTheme,
 	getIsLivePreviewSupported,
+	isWporgTheme,
 } from 'calypso/state/themes/selectors';
 import { isMarketplaceThemeSubscribed } from 'calypso/state/themes/selectors/is-marketplace-theme-subscribed';
 import { getSelectedSiteId } from 'calypso/state/ui/selectors';
@@ -62,7 +66,7 @@ import { getSelectedSiteId } from 'calypso/state/ui/selectors';
  * @param {string} minimumPlan
  * @returns
  */
-function getPlanPathSlugForFirstPartyThemes( state, siteId, minimumPlan ) {
+function getPlanPathSlugForThemes( state, siteId, minimumPlan ) {
 	const currentPlanSlug = getSitePlanSlug( state, siteId );
 	const requiredTerm = getPlan( currentPlanSlug )?.term || TERM_ANNUALLY;
 	const requiredPlanSlug = findFirstSimilarPlanKey( minimumPlan, { term: requiredTerm } );
@@ -85,6 +89,7 @@ function getAllThemeOptions( { translate, isFSEActive } ) {
 			const redirectTo = encodeURIComponent(
 				addQueryArgs( `/theme/${ themeId }/${ slug }`, {
 					style_variation: options?.styleVariationSlug,
+					activating: true,
 				} )
 			);
 
@@ -95,12 +100,17 @@ function getAllThemeOptions( { translate, isFSEActive } ) {
 				options?.styleVariationSlug &&
 				! isDefaultGlobalStylesVariationSlug( options.styleVariationSlug );
 
-			const minimumPlan =
-				tierMinimumUpsellPlan === PLAN_PERSONAL && isLockedStyleVariation
-					? PLAN_PREMIUM
-					: tierMinimumUpsellPlan;
+			// @TODO Cleanup once the test phase is over.
+			let minimumPlan;
+			if ( isEnabled( 'global-styles/on-personal-plan' ) ) {
+				minimumPlan = tierMinimumUpsellPlan;
+			} else if ( tierMinimumUpsellPlan === PLAN_PERSONAL && isLockedStyleVariation ) {
+				minimumPlan = PLAN_PREMIUM;
+			} else {
+				minimumPlan = tierMinimumUpsellPlan;
+			}
 
-			const planPathSlug = getPlanPathSlugForFirstPartyThemes( state, siteId, minimumPlan );
+			const planPathSlug = getPlanPathSlugForThemes( state, siteId, minimumPlan );
 
 			return `/checkout/${ slug }/${ planPathSlug }?redirect_to=${ redirectTo }`;
 		},
@@ -188,7 +198,7 @@ function getAllThemeOptions( { translate, isFSEActive } ) {
 				} )
 			);
 
-			const planPathSlug = getPlanPathSlugForFirstPartyThemes( state, siteId, PLAN_BUSINESS );
+			const planPathSlug = getPlanPathSlugForThemes( state, siteId, PLAN_BUSINESS );
 
 			return `/checkout/${ slug }/${ planPathSlug }?redirect_to=${ redirectTo }`;
 		},
@@ -201,6 +211,48 @@ function getAllThemeOptions( { translate, isFSEActive } ) {
 			isExternallyManagedTheme( state, themeId ) ||
 			isThemeActive( state, themeId, siteId ) ||
 			isPremiumThemeAvailable( state, themeId, siteId ),
+	};
+
+	// WPCOM-specific plan upgrade for community themes.
+	const upgradePlanForDotOrgThemes = {
+		label: translate( 'Upgrade to activate', {
+			comment: 'label prompting user to upgrade the WordPress.com plan to activate a certain theme',
+		} ),
+		extendedLabel: translate( 'Upgrade to activate', {
+			comment: 'label prompting user to upgrade the WordPress.com plan to activate a certain theme',
+		} ),
+		header: translate( 'Upgrade on:', {
+			context: 'verb',
+			comment: 'label for selecting a site for which to upgrade a plan',
+		} ),
+		getUrl: ( state, themeId, siteId ) => {
+			const { origin = 'https://wordpress.com' } =
+				typeof window !== 'undefined' ? window.location : {};
+			const slug = getSiteSlug( state, siteId );
+
+			const redirectTo = encodeURIComponent(
+				addQueryArgs( `${ origin }/theme/${ themeId }/${ slug }`, { activating: true } )
+			);
+
+			const currentPlanSlug = getSitePlanSlug( state, siteId );
+			const isEcommerceTrialMonthly = currentPlanSlug === PLAN_ECOMMERCE_TRIAL_MONTHLY;
+
+			const planPathSlug = getPlanPathSlugForThemes(
+				state,
+				siteId,
+				isEcommerceTrialMonthly ? PLAN_ECOMMERCE : PLAN_BUSINESS
+			);
+
+			return `/checkout/${ slug }/${ planPathSlug }?redirect_to=${ redirectTo }`;
+		},
+		hideForTheme: ( state, themeId, siteId ) =>
+			isJetpackSite( state, siteId ) ||
+			isSiteWpcomAtomic( state, siteId ) ||
+			! isUserLoggedIn( state ) ||
+			! siteId ||
+			isExternallyManagedTheme( state, themeId ) ||
+			isThemeActive( state, themeId, siteId ) ||
+			! isWporgTheme( state, themeId ),
 	};
 
 	const upgradePlanForExternallyManagedThemes = {
@@ -376,6 +428,7 @@ function getAllThemeOptions( { translate, isFSEActive } ) {
 		upgradePlan,
 		upgradePlanForBundledThemes,
 		upgradePlanForExternallyManagedThemes,
+		upgradePlanForDotOrgThemes,
 		activate,
 		tryandcustomize,
 		deleteTheme,

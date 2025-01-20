@@ -1,28 +1,20 @@
 import page from '@automattic/calypso-router';
 import { isWithinBreakpoint } from '@automattic/viewport';
-import { getQueryArg } from '@wordpress/url';
 import clsx from 'clsx';
 import { translate } from 'i18n-calypso';
-import { useContext, useEffect, useCallback, useState } from 'react';
-import GuidedTour from 'calypso/a8c-for-agencies/components/guided-tour';
+import { useContext, useEffect, useCallback, useState, useRef } from 'react';
+import A4AAgencyApprovalNotice from 'calypso/a8c-for-agencies/components/a4a-agency-approval-notice';
 import {
 	DATAVIEWS_LIST,
 	DATAVIEWS_TABLE,
 } from 'calypso/a8c-for-agencies/components/items-dashboard/constants';
 import { DataViewsState } from 'calypso/a8c-for-agencies/components/items-dashboard/items-dataviews/interfaces';
-import Layout from 'calypso/a8c-for-agencies/components/layout';
-import LayoutColumn from 'calypso/a8c-for-agencies/components/layout/column';
-import LayoutHeader, {
-	LayoutHeaderTitle as Title,
-	LayoutHeaderActions as Actions,
-} from 'calypso/a8c-for-agencies/components/layout/header';
-import LayoutNavigation, {
-	LayoutNavigationTabs as NavigationTabs,
-} from 'calypso/a8c-for-agencies/components/layout/nav';
-import LayoutTop from 'calypso/a8c-for-agencies/components/layout/top';
+import { LayoutWithGuidedTour as Layout } from 'calypso/a8c-for-agencies/components/layout/layout-with-guided-tour';
+import LayoutTop from 'calypso/a8c-for-agencies/components/layout/layout-with-payment-notification';
 import MobileSidebarNavigation from 'calypso/a8c-for-agencies/components/sidebar/mobile-sidebar-navigation';
 import JetpackSitesDataViews from 'calypso/a8c-for-agencies/sections/sites/features/jetpack/jetpack-sites-dataviews';
 import QueryReaderTeams from 'calypso/components/data/query-reader-teams';
+import GuidedTour from 'calypso/components/guided-tour';
 import useFetchDashboardSites from 'calypso/data/agency-dashboard/use-fetch-dashboard-sites';
 import useFetchMonitorVerifiedContacts from 'calypso/data/agency-dashboard/use-fetch-monitor-verified-contacts';
 import DashboardDataContext from 'calypso/jetpack-cloud/sections/agency-dashboard/sites-overview/dashboard-data-context';
@@ -30,6 +22,14 @@ import {
 	AgencyDashboardFilter,
 	Site,
 } from 'calypso/jetpack-cloud/sections/agency-dashboard/sites-overview/types';
+import LayoutColumn from 'calypso/layout/hosting-dashboard/column';
+import LayoutHeader, {
+	LayoutHeaderTitle as Title,
+	LayoutHeaderActions as Actions,
+} from 'calypso/layout/hosting-dashboard/header';
+import LayoutNavigation, {
+	LayoutNavigationTabs as NavigationTabs,
+} from 'calypso/layout/hosting-dashboard/nav';
 import { useDispatch, useSelector } from 'calypso/state';
 import { getActiveAgencyId } from 'calypso/state/a8c-for-agencies/agency/selectors';
 import { checkIfJetpackSiteGotDisconnected } from 'calypso/state/jetpack-agency-dashboard/selectors';
@@ -51,9 +51,6 @@ export default function SitesDashboard() {
 
 	const agencyId = useSelector( getActiveAgencyId );
 
-	const recentlyCreatedSite = getQueryArg( window.location.href, 'created_site' ) ?? null;
-	const migrationIntent = getQueryArg( window.location.href, 'migration' ) ?? null;
-
 	const {
 		dataViewsState,
 		setDataViewsState,
@@ -63,17 +60,7 @@ export default function SitesDashboard() {
 		setSelectedCategory: setCategory,
 		showOnlyFavorites,
 		showOnlyDevelopmentSites,
-		hideListing,
-		setHideListing,
-		recentlyCreatedSiteId,
-		setRecentlyCreatedSiteId,
 	} = useContext( SitesDashboardContext );
-
-	useEffect( () => {
-		if ( recentlyCreatedSite ) {
-			setRecentlyCreatedSiteId( Number( recentlyCreatedSite ) );
-		}
-	}, [ recentlyCreatedSite, setRecentlyCreatedSiteId ] );
 
 	const isLargeScreen = isWithinBreakpoint( '>960px' );
 	// FIXME: We should switch to a new A4A-specific endpoint when it becomes available, instead of using the public-facing endpoint for A4A
@@ -106,20 +93,46 @@ export default function SitesDashboard() {
 		showOnlyDevelopmentSites,
 	] );
 
+	// Reset back to page one when entering Needs Attention, Favourites, or Development page.
+	const selectedFilters = getSelectedFilters( dataViewsState.filters );
+	const isOnNeedsAttentionPage = selectedFilters.includes( 'all_issues' );
+	const prevIsOnFavouritesPageRef = useRef( showOnlyFavorites );
+	const prevIsOnDevelopmentPageRef = useRef( showOnlyDevelopmentSites );
+	const prevIsOnNeedsAttentionPageRef = useRef( isOnNeedsAttentionPage );
+
+	useEffect( () => {
+		const selectedFilters = getSelectedFilters( dataViewsState.filters );
+		const isOnNeedsAttentionPage = selectedFilters.includes( 'all_issues' );
+
+		if (
+			prevIsOnFavouritesPageRef.current !== showOnlyFavorites ||
+			prevIsOnDevelopmentPageRef.current !== showOnlyDevelopmentSites ||
+			prevIsOnNeedsAttentionPageRef.current !== isOnNeedsAttentionPage
+		) {
+			setDataViewsState( { ...dataViewsState, page: 1 } );
+		}
+
+		prevIsOnFavouritesPageRef.current = showOnlyFavorites;
+		prevIsOnDevelopmentPageRef.current = showOnlyDevelopmentSites;
+		prevIsOnNeedsAttentionPageRef.current = isOnNeedsAttentionPage;
+	}, [ dataViewsState, setDataViewsState, showOnlyFavorites, showOnlyDevelopmentSites ] );
+
+	// Temporarily set perPage to 100 on Development sites page due to unresolved ES issue (https://github.com/Automattic/dotcom-forge/issues/8806)
+	const sitesPerPage = showOnlyDevelopmentSites ? 100 : dataViewsState.perPage;
+
 	const { data, isError, isLoading, refetch } = useFetchDashboardSites( {
 		isPartnerOAuthTokenLoaded: false,
 		searchQuery: dataViewsState?.search,
 		currentPage: dataViewsState.page ?? 1,
 		filter: agencyDashboardFilter,
 		sort: dataViewsState.sort,
-		perPage: dataViewsState.perPage,
+		perPage: sitesPerPage,
 		agencyId,
 	} );
 
 	useEffect( () => {
 		if ( dataViewsState.selectedItem && ! initialSelectedSiteUrl ) {
 			setDataViewsState( { ...dataViewsState, type: DATAVIEWS_TABLE, selectedItem: undefined } );
-			setHideListing( false );
 			return;
 		}
 
@@ -141,54 +154,55 @@ export default function SitesDashboard() {
 		}
 		// Omitting sitesViewState to prevent infinite loop
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ data, isError, isLoading, initialSelectedSiteUrl, setDataViewsState, setHideListing ] );
+	}, [ data, isError, isLoading, initialSelectedSiteUrl, setDataViewsState ] );
+
+	const setUpdatedUrl = useCallback(
+		( selectedSite?: Site ) => {
+			const updatedUrl = updateSitesDashboardUrl( {
+				category,
+				setCategory,
+				showOnlyFavorites,
+				showOnlyDevelopmentSites,
+				filters: dataViewsState.filters ?? [],
+				selectedSite,
+				selectedSiteFeature: selectedSiteFeature,
+				search: dataViewsState.search ?? '',
+				currentPage: dataViewsState.page ?? 1,
+				sort: dataViewsState.sort,
+			} );
+			if ( page.current !== updatedUrl && updatedUrl !== undefined ) {
+				page.show( updatedUrl );
+			}
+		},
+		[
+			category,
+			dataViewsState.filters,
+			dataViewsState.page,
+			dataViewsState.search,
+			dataViewsState.sort,
+			selectedSiteFeature,
+			setCategory,
+			showOnlyDevelopmentSites,
+			showOnlyFavorites,
+		]
+	);
 
 	useEffect( () => {
 		// If there isn't a selected site and we are showing only the preview pane we should wait for the selected site to load from the endpoint
-		if ( hideListing && ! dataViewsState.selectedItem ) {
+		if ( ! dataViewsState.selectedItem ) {
 			return;
 		}
-
-		if ( dataViewsState.selectedItem ) {
-			dispatch( setSelectedSiteId( dataViewsState.selectedItem.blog_id ) );
-		}
-
-		const updatedUrl = updateSitesDashboardUrl( {
-			category: category,
-			setCategory: setCategory,
-			filters: dataViewsState.filters ?? [],
-			selectedSite: dataViewsState.selectedItem,
-			selectedSiteFeature: selectedSiteFeature,
-			search: dataViewsState.search ?? '',
-			currentPage: dataViewsState.page ?? 1,
-			sort: dataViewsState.sort,
-			showOnlyFavorites,
-			showOnlyDevelopmentSites,
-		} );
-		if ( page.current !== updatedUrl && updatedUrl !== undefined ) {
-			page.show( updatedUrl );
-		}
-	}, [
-		dataViewsState.selectedItem,
-		selectedSiteFeature,
-		category,
-		setCategory,
-		dispatch,
-		dataViewsState.filters,
-		dataViewsState.search,
-		dataViewsState.page,
-		showOnlyFavorites,
-		showOnlyDevelopmentSites,
-		dataViewsState.sort,
-		hideListing,
-	] );
+		dispatch( setSelectedSiteId( dataViewsState.selectedItem.blog_id ) );
+		setUpdatedUrl( dataViewsState.selectedItem );
+	}, [ dataViewsState.selectedItem, dispatch, setUpdatedUrl ] );
 
 	const closeSitePreviewPane = useCallback( () => {
 		if ( dataViewsState.selectedItem ) {
-			setDataViewsState( { ...dataViewsState, type: DATAVIEWS_TABLE, selectedItem: undefined } );
-			setHideListing( false );
+			const selectedItem = undefined;
+			setDataViewsState( { ...dataViewsState, type: DATAVIEWS_TABLE, selectedItem } );
+			setUpdatedUrl( selectedItem );
 		}
-	}, [ dataViewsState, setDataViewsState, setHideListing ] );
+	}, [ dataViewsState, setDataViewsState, setUpdatedUrl ] );
 
 	useEffect( () => {
 		if ( jetpackSiteDisconnected ) {
@@ -230,61 +244,55 @@ export default function SitesDashboard() {
 			wide
 			title={ dataViewsState.selectedItem ? null : translate( 'Sites' ) }
 		>
-			{ ! hideListing && (
-				<LayoutColumn className="sites-overview" wide>
-					<LayoutTop withNavigation={ navItems.length > 1 }>
-						{ recentlyCreatedSiteId && (
-							<ProvisioningSiteNotification
-								siteId={ Number( recentlyCreatedSiteId ) }
-								migrationIntent={ !! migrationIntent }
-							/>
-						) }
+			<LayoutColumn className="sites-overview" wide>
+				<LayoutTop withNavigation={ navItems.length > 1 }>
+					<ProvisioningSiteNotification />
+					<A4AAgencyApprovalNotice />
 
-						<LayoutHeader>
-							<Title>{ translate( 'Sites' ) }</Title>
-							<Actions>
-								<MobileSidebarNavigation />
-								<SitesHeaderActions onWPCOMImport={ () => refetch() } />
-							</Actions>
-						</LayoutHeader>
-						{ navItems.length > 1 && (
-							<LayoutNavigation { ...selectedItemProps }>
-								<NavigationTabs { ...selectedItemProps } items={ navItems } />
-							</LayoutNavigation>
-						) }
-					</LayoutTop>
+					<LayoutHeader>
+						<Title>{ translate( 'Sites' ) }</Title>
+						<Actions>
+							<MobileSidebarNavigation />
+							<SitesHeaderActions onWPCOMImport={ () => refetch() } />
+						</Actions>
+					</LayoutHeader>
+					{ navItems.length > 1 && (
+						<LayoutNavigation { ...selectedItemProps }>
+							<NavigationTabs { ...selectedItemProps } items={ navItems } />
+						</LayoutNavigation>
+					) }
+				</LayoutTop>
 
-					<SiteNotifications />
-					{ tourId && <GuidedTour defaultTourId={ tourId } /> }
-					<QueryReaderTeams />
-					<DashboardDataContext.Provider
-						value={ {
-							verifiedContacts: {
-								emails: verifiedContacts?.emails ?? [],
-								phoneNumbers: verifiedContacts?.phoneNumbers ?? [],
-								refetchIfFailed: () => {
-									if ( fetchContactFailed ) {
-										refetchContacts();
-									}
-									return;
-								},
+				<SiteNotifications />
+				{ tourId && <GuidedTour defaultTourId={ tourId } /> }
+				<QueryReaderTeams />
+				<DashboardDataContext.Provider
+					value={ {
+						verifiedContacts: {
+							emails: verifiedContacts?.emails ?? [],
+							phoneNumbers: verifiedContacts?.phoneNumbers ?? [],
+							refetchIfFailed: () => {
+								if ( fetchContactFailed ) {
+									refetchContacts();
+								}
+								return;
 							},
-							products: products ?? [],
-							isLargeScreen: isLargeScreen || false,
-						} }
-					>
-						<JetpackSitesDataViews
-							className={ clsx( 'sites-overview__content' ) }
-							data={ data }
-							isLoading={ isLoading }
-							isLargeScreen={ isLargeScreen || false }
-							setDataViewsState={ setDataViewsState }
-							dataViewsState={ dataViewsState }
-							onRefetchSite={ refetch }
-						/>
-					</DashboardDataContext.Provider>
-				</LayoutColumn>
-			) }
+						},
+						products: products ?? [],
+						isLargeScreen: isLargeScreen || false,
+					} }
+				>
+					<JetpackSitesDataViews
+						className={ clsx( 'sites-overview__content' ) }
+						data={ data }
+						isLoading={ isLoading }
+						isLargeScreen={ isLargeScreen || false }
+						setDataViewsState={ setDataViewsState }
+						dataViewsState={ dataViewsState }
+						onRefetchSite={ refetch }
+					/>
+				</DashboardDataContext.Provider>
+			</LayoutColumn>
 
 			{ dataViewsState.selectedItem && (
 				<LayoutColumn className="site-preview-pane" wide>

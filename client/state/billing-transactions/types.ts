@@ -32,6 +32,7 @@ export interface BillingTransaction {
 	cc_name: string;
 	cc_num: string;
 	cc_type: string;
+	cc_display_brand: string | null;
 	credit: string;
 	date: string;
 	desc: string;
@@ -154,6 +155,12 @@ export interface BillingTransactionItem {
 	variation_slug: string;
 	months_per_renewal_interval: number;
 	wpcom_product_slug: string;
+
+	/**
+	 * Slug for price tier, available only if product supports usage-based tiered pricing.
+	 * See D40809-code for details.
+	 */
+	price_tier_slug: string | null;
 }
 
 export interface ReceiptCostOverride {

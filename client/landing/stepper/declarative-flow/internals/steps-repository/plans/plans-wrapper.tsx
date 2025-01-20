@@ -6,7 +6,6 @@ import {
 	isLinkInBioFlow,
 	isNewsletterFlow,
 	NEWSLETTER_FLOW,
-	LINK_IN_BIO_FLOW,
 	NEW_HOSTED_SITE_FLOW,
 	isNewHostedSiteCreationFlow,
 	isDomainUpsellFlow,
@@ -22,13 +21,13 @@ import clsx from 'clsx';
 import { localize, useTranslate } from 'i18n-calypso';
 import React, { useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
+import { getIntervalType } from 'calypso/landing/stepper/declarative-flow/internals/steps-repository/unified-plans/util';
 import { useSaveHostingFlowPathStep } from 'calypso/landing/stepper/hooks/use-save-hosting-flow-path-step';
 import { useSite } from 'calypso/landing/stepper/hooks/use-site';
 import { getPlanCartItem } from 'calypso/lib/cart-values/cart-items';
 import PlansFeaturesMain from 'calypso/my-sites/plans-features-main';
 import PlanFAQ from 'calypso/my-sites/plans-features-main/components/plan-faq';
 import StepWrapper from 'calypso/signup/step-wrapper';
-import { getIntervalType } from 'calypso/signup/steps/plans/util';
 import { recordTracksEvent } from 'calypso/state/analytics/actions';
 import { ONBOARD_STORE } from '../../../../stores';
 import type { OnboardSelect } from '@automattic/data-stores';
@@ -41,22 +40,26 @@ interface Props {
 	onSubmit: ( planCartItem: MinimalRequestCartProduct | null ) => void;
 }
 
-function getPlansIntent( flowName: string | null ): PlansIntent | null {
+function getPlansIntent( flowName: string | null, isWordCampPromo?: boolean ): PlansIntent | null {
 	switch ( flowName ) {
 		case START_WRITING_FLOW:
 		case DESIGN_FIRST_FLOW:
 			return 'plans-blog-onboarding';
 		case NEWSLETTER_FLOW:
 			return 'plans-newsletter';
-		case LINK_IN_BIO_FLOW:
-			return 'plans-link-in-bio';
 		case NEW_HOSTED_SITE_FLOW:
+			if ( isWordCampPromo ) {
+				return 'plans-new-hosted-site-business-only';
+			}
 			return 'plans-new-hosted-site';
 		default:
 			return null;
 	}
 }
 
+/**
+ * @deprecated Use `unified-plans` instead. This step is deprecated and will be removed in the future.
+ */
 const PlansWrapper: React.FC< Props > = ( props ) => {
 	const {
 		hideFreePlan: reduxHideFreePlan,
@@ -90,11 +93,17 @@ const PlansWrapper: React.FC< Props > = ( props ) => {
 	const isDesktop = useDesktopBreakpoint();
 	const navigate = useNavigate();
 	const location = useLocation();
+
 	const stepName = 'plans';
 	const customerType = 'personal';
 	const headerText = __( 'Choose a plan' );
 	const isInSignup = isDomainUpsellFlow( flowName ) ? false : true;
-	const plansIntent = getPlansIntent( flowName );
+	/**
+	 * isWordCampPromo is temporary
+	 */
+	const isWordCampPromo = new URLSearchParams( location.search ).has( 'utm_source', 'wordcamp' );
+	const plansIntent = getPlansIntent( flowName, isWordCampPromo );
+
 	const hideFreePlan = plansIntent
 		? reduxHideFreePlan && 'plans-blog-onboarding' === plansIntent
 		: reduxHideFreePlan;
@@ -129,6 +138,7 @@ const PlansWrapper: React.FC< Props > = ( props ) => {
 		} else {
 			recordTracksEvent( 'calypso_signup_free_plan_select', {
 				from_section: 'default',
+				flow: flowName,
 			} );
 		}
 
@@ -173,12 +183,13 @@ const PlansWrapper: React.FC< Props > = ( props ) => {
 					customerType={ customerType }
 					plansWithScroll={ isDesktop }
 					flowName={ flowName }
-					hidePlansFeatureComparison={ hidePlansFeatureComparison }
+					hidePlansFeatureComparison={ hidePlansFeatureComparison || isWordCampPromo }
 					intent={ plansIntent }
 					removePaidDomain={ removePaidDomain }
 					setSiteUrlAsFreeDomainSuggestion={ setSiteUrlAsFreeDomainSuggestion }
 					renderSiblingWhenLoaded={ () => props.shouldIncludeFAQ && <PlanFAQ /> }
 					showPlanTypeSelectorDropdown={ config.isEnabled( 'onboarding/interval-dropdown' ) }
+					hidePlanTypeSelector={ isWordCampPromo }
 					onPlanIntervalUpdate={ onPlanIntervalUpdate }
 					coupon={ couponCode }
 				/>

@@ -19,24 +19,23 @@ export function translateWpcomPaymentMethodToCheckoutPaymentMethod(
 		case 'WPCOM_Billing_PayPal_Direct':
 			return 'paypal-direct';
 		case 'WPCOM_Billing_PayPal_Express':
-			return 'paypal';
+			return 'paypal-express';
+		case 'WPCOM_Billing_PayPal_PPCP':
+			// NOTE: we cannot use the key `paypal` because composite-checkout
+			// ends up using this as an `id`, which overwrites `window.paypal`
+			// which is the namespace used by the PayPal JS SDK.
+			return 'paypal-js';
 		case 'WPCOM_Billing_Stripe_Payment_Method':
 			return 'card';
-		case 'WPCOM_Billing_Stripe_Source_Alipay':
+		case 'WPCOM_Billing_Stripe_Alipay':
 			return 'alipay';
-		case 'WPCOM_Billing_Stripe_Source_Bancontact':
+		case 'WPCOM_Billing_Stripe_Bancontact':
 			return 'bancontact';
-		case 'WPCOM_Billing_Stripe_Source_Eps':
-			return 'eps';
-		case 'WPCOM_Billing_Stripe_Source_Ideal':
+		case 'WPCOM_Billing_Stripe_Ideal':
 			return 'ideal';
-		case 'WPCOM_Billing_Stripe_Source_P24':
+		case 'WPCOM_Billing_Stripe_P24':
 			return 'p24';
-		case 'WPCOM_Billing_Stripe_Source_Sofort':
-			return 'sofort';
-		case 'WPCOM_Billing_Stripe_Source_Three_D_Secure':
-			return 'stripe-three-d-secure';
-		case 'WPCOM_Billing_Stripe_Source_Wechat':
+		case 'WPCOM_Billing_Stripe_Wechat_Pay':
 			return 'wechat';
 		case 'WPCOM_Billing_Dlocal_Redirect_India_Netbanking':
 			return 'netbanking';
@@ -46,8 +45,9 @@ export function translateWpcomPaymentMethodToCheckoutPaymentMethod(
 			return 'existingCard';
 		case 'WPCOM_Billing_Razorpay':
 			return 'razorpay';
+		default:
+			throw new Error( `Unknown payment method '${ paymentMethod }'` );
 	}
-	throw new Error( `Unknown payment method '${ paymentMethod }'` );
 }
 
 export function translateCheckoutPaymentMethodToWpcomPaymentMethod(
@@ -68,27 +68,23 @@ export function translateCheckoutPaymentMethodToWpcomPaymentMethod(
 			return 'WPCOM_Billing_Dlocal_Redirect_India_Netbanking';
 		case 'paypal-direct':
 			return 'WPCOM_Billing_PayPal_Direct';
-		case 'paypal':
+		case 'paypal-express':
 			return 'WPCOM_Billing_PayPal_Express';
+		case 'paypal-js':
+			return 'WPCOM_Billing_PayPal_PPCP';
 		case 'stripe':
 		case 'card':
 			return 'WPCOM_Billing_Stripe_Payment_Method';
 		case 'alipay':
-			return 'WPCOM_Billing_Stripe_Source_Alipay';
+			return 'WPCOM_Billing_Stripe_Alipay';
 		case 'bancontact':
-			return 'WPCOM_Billing_Stripe_Source_Bancontact';
-		case 'eps':
-			return 'WPCOM_Billing_Stripe_Source_Eps';
+			return 'WPCOM_Billing_Stripe_Bancontact';
 		case 'ideal':
-			return 'WPCOM_Billing_Stripe_Source_Ideal';
+			return 'WPCOM_Billing_Stripe_Ideal';
 		case 'p24':
-			return 'WPCOM_Billing_Stripe_Source_P24';
-		case 'sofort':
-			return 'WPCOM_Billing_Stripe_Source_Sofort';
-		case 'stripe-three-d-secure':
-			return 'WPCOM_Billing_Stripe_Source_Three_D_Secure';
+			return 'WPCOM_Billing_Stripe_P24';
 		case 'wechat':
-			return 'WPCOM_Billing_Stripe_Source_Wechat';
+			return 'WPCOM_Billing_Stripe_Wechat_Pay';
 		case 'apple-pay':
 		case 'google-pay':
 			return 'WPCOM_Billing_Web_Payment';
@@ -109,15 +105,13 @@ export function readWPCOMPaymentMethodClass( slug: string ): WPCOMPaymentMethod 
 		case 'WPCOM_Billing_Dlocal_Redirect_India_Netbanking':
 		case 'WPCOM_Billing_PayPal_Direct':
 		case 'WPCOM_Billing_PayPal_Express':
+		case 'WPCOM_Billing_PayPal_PPCP':
 		case 'WPCOM_Billing_Stripe_Payment_Method':
-		case 'WPCOM_Billing_Stripe_Source_Alipay':
-		case 'WPCOM_Billing_Stripe_Source_Bancontact':
-		case 'WPCOM_Billing_Stripe_Source_Eps':
-		case 'WPCOM_Billing_Stripe_Source_Ideal':
-		case 'WPCOM_Billing_Stripe_Source_P24':
-		case 'WPCOM_Billing_Stripe_Source_Sofort':
-		case 'WPCOM_Billing_Stripe_Source_Three_D_Secure':
-		case 'WPCOM_Billing_Stripe_Source_Wechat':
+		case 'WPCOM_Billing_Stripe_Alipay':
+		case 'WPCOM_Billing_Stripe_Bancontact':
+		case 'WPCOM_Billing_Stripe_Ideal':
+		case 'WPCOM_Billing_Stripe_P24':
+		case 'WPCOM_Billing_Stripe_Wechat_Pay':
 		case 'WPCOM_Billing_Web_Payment':
 		case 'WPCOM_Billing_Razorpay':
 			return slug;
@@ -137,17 +131,15 @@ export function readCheckoutPaymentMethodSlug( slug: string ): CheckoutPaymentMe
 		case 'pix':
 		case 'netbanking':
 		case 'paypal-direct':
-		case 'paypal':
+		case 'paypal-express':
+		case 'paypal-js':
 		case 'card':
 		case 'stripe':
 		case 'existingCard':
 		case 'alipay':
 		case 'bancontact':
-		case 'eps':
 		case 'ideal':
 		case 'p24':
-		case 'sofort':
-		case 'stripe-three-d-secure':
 		case 'wechat':
 		case 'web-pay':
 		case 'free-purchase':
@@ -182,13 +174,12 @@ export function isRedirectPaymentMethod( slug: CheckoutPaymentMethodSlug ): bool
 	const redirectPaymentMethods = [
 		'alipay',
 		'bancontact',
-		'eps',
 		'ideal',
 		'netbanking',
-		'paypal',
+		'paypal-express',
+		'paypal-js',
 		'p24',
 		'wechat',
-		'sofort',
 	];
 	return redirectPaymentMethods.includes( slug );
 }

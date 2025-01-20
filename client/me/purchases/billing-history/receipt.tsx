@@ -21,7 +21,7 @@ import Main from 'calypso/components/main';
 import NavigationHeader from 'calypso/components/navigation-header';
 import TextareaAutosize from 'calypso/components/textarea-autosize';
 import PageViewTracker from 'calypso/lib/analytics/page-view-tracker';
-import { PARTNER_PAYPAL_EXPRESS } from 'calypso/lib/checkout/payment-methods';
+import { PARTNER_PAYPAL_EXPRESS, PARTNER_PAYPAL_PPCP } from 'calypso/lib/checkout/payment-methods';
 import { billingHistory, vatDetails as vatDetailsPath } from 'calypso/me/purchases/paths';
 import titles from 'calypso/me/purchases/titles';
 import useVatDetails from 'calypso/me/purchases/vat-info/use-vat-details';
@@ -41,6 +41,8 @@ import {
 	renderTransactionQuantitySummary,
 	renderDomainTransactionVolumeSummary,
 	transactionIncludesTax,
+	isTransactionJetpackSearch10kTier,
+	renderJetpackSearch10kTierBreakdown,
 } from './utils';
 import { VatVendorDetails } from './vat-vendor-details';
 import type {
@@ -207,12 +209,17 @@ function ReceiptPaymentMethod( { transaction }: { transaction: BillingTransactio
 	const translate = useTranslate();
 	let text;
 
-	if ( transaction.pay_part === PARTNER_PAYPAL_EXPRESS ) {
+	if (
+		transaction.pay_part === PARTNER_PAYPAL_EXPRESS ||
+		transaction.pay_part === PARTNER_PAYPAL_PPCP
+	) {
 		text = translate( 'PayPal' );
 	} else if ( 'XXXX' !== transaction.cc_num ) {
 		text = translate( '%(cardType)s ending in %(cardNum)s', {
 			args: {
-				cardType: transaction.cc_type.toUpperCase(),
+				cardType:
+					transaction.cc_display_brand?.replace( '_', ' ' ).toUpperCase() ??
+					transaction.cc_type.toUpperCase(),
 				cardNum: transaction.cc_num,
 			},
 		} );
@@ -515,14 +522,13 @@ function ReceiptLineItem( {
 	const translate = useTranslate();
 	const termLabel = getTransactionTermLabel( item, translate );
 	const shouldShowDiscount = areReceiptItemDiscountsAccurate( transaction.date );
-	const formattedAmount = formatCurrency(
-		shouldShowDiscount ? getReceiptItemOriginalCost( item ) : item.subtotal_integer,
-		item.currency,
-		{
-			isSmallestUnit: true,
-			stripZeros: true,
-		}
-	);
+	const subtotal_integer = shouldShowDiscount
+		? getReceiptItemOriginalCost( item )
+		: item.subtotal_integer;
+	const formattedAmount = formatCurrency( subtotal_integer, item.currency, {
+		isSmallestUnit: true,
+		stripZeros: true,
+	} );
 	return (
 		<>
 			<tr>
@@ -533,6 +539,9 @@ function ReceiptLineItem( {
 					{ item.domain && <em>{ item.domain }</em> }
 					{ item.licensed_quantity && (
 						<em>{ renderTransactionQuantitySummary( item, translate ) }</em>
+					) }
+					{ isTransactionJetpackSearch10kTier( item ) && (
+						<em>{ renderJetpackSearch10kTierBreakdown( item, subtotal_integer, translate ) }</em>
 					) }
 					{ item.volume && <em>{ renderDomainTransactionVolumeSummary( item, translate ) }</em> }
 				</td>

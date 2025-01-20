@@ -1,4 +1,3 @@
-import config from '@automattic/calypso-config';
 import { PLAN_MIGRATION_TRIAL_MONTHLY } from '@automattic/calypso-products';
 import { Onboard, type SiteSelect, type UserSelect } from '@automattic/data-stores';
 import { isHostedSiteMigrationFlow } from '@automattic/onboarding';
@@ -10,6 +9,7 @@ import { useAnalyzeUrlQuery } from 'calypso/data/site-profiler/use-analyze-url-q
 import { useQuery } from 'calypso/landing/stepper/hooks/use-query';
 import { stepsWithRequiredLogin } from 'calypso/landing/stepper/utils/steps-with-required-login';
 import { triggerGuidesForStep } from 'calypso/lib/guides/trigger-guides-for-step';
+import { ImporterPlatform } from 'calypso/lib/importer/types';
 import { addQueryArgs } from 'calypso/lib/url';
 import { GUIDED_ONBOARDING_FLOW_REFERRER } from 'calypso/signup/steps/initial-intent/constants';
 import { HOW_TO_MIGRATE_OPTIONS } from '../constants';
@@ -22,6 +22,7 @@ import { STEPS } from './internals/steps';
 import { getSiteIdParam } from './internals/steps-repository/import/util';
 import { type SiteMigrationIdentifyAction } from './internals/steps-repository/site-migration-identify';
 import { AssertConditionState } from './internals/types';
+import { goToImporter } from './migration/helpers';
 import type { AssertConditionResult, Flow, ProvidedDependencies } from './internals/types';
 
 const FLOW_NAME = 'site-migration';
@@ -49,7 +50,12 @@ const siteMigration: Flow = {
 			STEPS.ERROR,
 			STEPS.SITE_MIGRATION_ASSISTED_MIGRATION,
 			STEPS.SITE_MIGRATION_SOURCE_URL,
+			STEPS.SITE_MIGRATION_FALLBACK_CREDENTIALS,
 			STEPS.SITE_MIGRATION_CREDENTIALS,
+			STEPS.SITE_MIGRATION_ALREADY_WPCOM,
+			STEPS.SITE_MIGRATION_OTHER_PLATFORM_DETECTED_IMPORT,
+			STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION,
+			STEPS.SITE_MIGRATION_SUPPORT_INSTRUCTIONS,
 		];
 
 		const hostedVariantSteps = isHostedSiteMigrationFlow( this.variantSlug ?? FLOW_NAME )
@@ -74,24 +80,8 @@ const siteMigration: Flow = {
 			}
 		}, [ isAdmin ] );
 
-		useEffect( () => {
-			// We don't need to do anything if the user isn't logged in.
-			if ( ! userIsLoggedIn ) {
-				return;
-			}
-
-			if ( siteSlug || siteId ) {
-				return;
-			}
-
-			if ( isHostedSiteMigrationFlow( flowPath ) ) {
-				return;
-			}
-
-			window.location.assign( '/start' );
-		}, [ flowPath, siteId, siteSlug, userIsLoggedIn, isAdmin ] );
-
-		if ( ! siteSlug && ! siteId && ! isHostedSiteMigrationFlow( flowPath ) ) {
+		if ( userIsLoggedIn && ! siteSlug && ! siteId && ! isHostedSiteMigrationFlow( flowPath ) ) {
+			window.location.assign( '/' );
 			return {
 				state: AssertConditionState.FAILURE,
 				message: 'site-migration does not have the site slug or site id.',
@@ -270,23 +260,7 @@ const siteMigration: Flow = {
 						);
 					}
 
-					if ( config.isEnabled( 'migration-flow/enable-migration-assistant' ) ) {
-						return navigate( STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug, {
-							siteId,
-							siteSlug,
-						} );
-					}
-
-					// Take the user to the upgrade plan step.
-					if ( providedDependencies?.destination === 'upgrade' ) {
-						return navigate( STEPS.SITE_MIGRATION_UPGRADE_PLAN.slug, {
-							siteId,
-							siteSlug,
-						} );
-					}
-
-					// Continue with the migration flow.
-					return navigate( STEPS.SITE_MIGRATION_INSTRUCTIONS.slug, {
+					return navigate( STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug, {
 						siteId,
 						siteSlug,
 					} );
@@ -311,23 +285,16 @@ const siteMigration: Flow = {
 
 					// Do it for me option.
 					if ( providedDependencies?.how === HOW_TO_MIGRATE_OPTIONS.DO_IT_FOR_ME ) {
-						if ( config.isEnabled( 'automated-migration/collect-credentials' ) ) {
-							return navigate(
-								addQueryArgs(
-									{
-										siteSlug,
-										from: fromQueryParam,
-										siteId,
-									},
-									STEPS.SITE_MIGRATION_CREDENTIALS.slug
-								)
-							);
-						}
-
-						return navigate( STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug, {
-							siteId,
-							siteSlug,
-						} );
+						return navigate(
+							addQueryArgs(
+								{
+									siteSlug,
+									from: fromQueryParam,
+									siteId,
+								},
+								STEPS.SITE_MIGRATION_CREDENTIALS.slug
+							)
+						);
 					}
 
 					// Continue with the migration flow.
@@ -356,14 +323,7 @@ const siteMigration: Flow = {
 							providedDependencies?.userAcceptedDeal ||
 							urlQueryParams.get( 'how' ) === HOW_TO_MIGRATE_OPTIONS.DO_IT_FOR_ME
 						) {
-							if ( config.isEnabled( 'automated-migration/collect-credentials' ) ) {
-								redirectAfterCheckout = STEPS.SITE_MIGRATION_CREDENTIALS.slug;
-							} else if ( ! fromQueryParam ) {
-								// If the user selected "Do it for me" but has not given us a source site, we should take them to the source URL step.
-								redirectAfterCheckout = STEPS.SITE_MIGRATION_SOURCE_URL.slug;
-							} else {
-								redirectAfterCheckout = STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug;
-							}
+							redirectAfterCheckout = STEPS.SITE_MIGRATION_CREDENTIALS.slug;
 						}
 
 						const destination = addQueryArgs(
@@ -421,23 +381,182 @@ const siteMigration: Flow = {
 				}
 
 				case STEPS.SITE_MIGRATION_CREDENTIALS.slug: {
-					const { action } = providedDependencies as {
-						action: 'skip' | 'submit';
+					const { action, from, authorizationUrl } = providedDependencies as {
+						action:
+							| 'skip'
+							| 'submit'
+							| 'application-passwords-approval'
+							| 'credentials-required'
+							| 'already-wpcom'
+							| 'site-is-not-using-wordpress';
+						from: string;
+						authorizationUrl: string;
 					};
 
 					if ( action === 'skip' ) {
 						return navigate(
 							addQueryArgs(
-								{ siteId, from: fromQueryParam, siteSlug, credentials: 'skipped' },
+								{ siteId, from: from || fromQueryParam, siteSlug },
 								STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug
 							)
 						);
 					}
 
-					return navigate( STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug, {
-						siteId,
-						siteSlug,
-					} );
+					if ( action === 'already-wpcom' ) {
+						return navigate(
+							addQueryArgs(
+								{ siteId, from: from || fromQueryParam, siteSlug },
+								STEPS.SITE_MIGRATION_ALREADY_WPCOM.slug
+							)
+						);
+					}
+
+					if ( action === 'site-is-not-using-wordpress' ) {
+						return navigate(
+							addQueryArgs(
+								{
+									siteId,
+									from: from || fromQueryParam,
+									siteSlug,
+									platform: providedDependencies.platform as string,
+								},
+								STEPS.SITE_MIGRATION_OTHER_PLATFORM_DETECTED_IMPORT.slug
+							)
+						);
+					}
+
+					if ( action === 'application-passwords-approval' ) {
+						return navigate(
+							addQueryArgs(
+								{
+									siteId,
+									from: from || fromQueryParam,
+									siteSlug,
+									authorizationUrl,
+								},
+								STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug
+							)
+						);
+					}
+
+					if ( action === 'credentials-required' ) {
+						return navigate(
+							addQueryArgs(
+								{ siteId, from: from || fromQueryParam, siteSlug },
+								STEPS.SITE_MIGRATION_FALLBACK_CREDENTIALS.slug
+							)
+						);
+					}
+
+					return navigate(
+						addQueryArgs(
+							{ siteId, from: from || fromQueryParam, siteSlug, preventTicketCreation: true },
+							STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug
+						)
+					);
+				}
+
+				case STEPS.SITE_MIGRATION_FALLBACK_CREDENTIALS.slug: {
+					const { action, from } = providedDependencies as {
+						action: 'skip' | 'submit';
+						from: string;
+					};
+
+					if ( action === 'skip' ) {
+						return navigate(
+							addQueryArgs(
+								{ siteId, from: from || fromQueryParam, siteSlug, preventTicketCreation: true },
+								STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug
+							)
+						);
+					}
+
+					return navigate(
+						addQueryArgs(
+							{ siteId, from: from || fromQueryParam, siteSlug, preventTicketCreation: true },
+							STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug
+						)
+					);
+				}
+
+				case STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug: {
+					const { hasError } = providedDependencies as {
+						hasError?: 'ticket-creation';
+					};
+
+					if ( hasError === 'ticket-creation' ) {
+						return navigate(
+							addQueryArgs(
+								{ siteId, siteSlug, from: fromQueryParam, error: hasError },
+								STEPS.SITE_MIGRATION_CREDENTIALS.slug
+							)
+						);
+					}
+				}
+
+				case STEPS.SITE_MIGRATION_ALREADY_WPCOM.slug: {
+					return navigate(
+						addQueryArgs(
+							{ siteId, from: fromQueryParam, siteSlug, preventTicketCreation: true },
+							STEPS.SITE_MIGRATION_SUPPORT_INSTRUCTIONS.slug
+						)
+					);
+				}
+				case STEPS.SITE_MIGRATION_OTHER_PLATFORM_DETECTED_IMPORT.slug: {
+					if ( providedDependencies?.action === 'import' ) {
+						return goToImporter( {
+							platform: providedDependencies.platform as ImporterPlatform,
+							siteId: siteId!.toString(),
+							siteSlug,
+							backToFlow: `${ FLOW_NAME }/${ STEPS.SITE_MIGRATION_OTHER_PLATFORM_DETECTED_IMPORT.slug }`,
+							from: fromQueryParam,
+							ref: FLOW_NAME,
+						} );
+					}
+
+					return navigate(
+						addQueryArgs(
+							{ siteId, from: fromQueryParam, siteSlug },
+							STEPS.SITE_MIGRATION_SUPPORT_INSTRUCTIONS.slug
+						)
+					);
+				}
+
+				case STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug: {
+					const { action, authorizationUrl, from } = providedDependencies as {
+						action: string;
+						from: string;
+						authorizationUrl: string;
+					};
+
+					if ( action === 'authorization' ) {
+						const currentUrl = window.location.href;
+						const successUrl = encodeURIComponent( currentUrl );
+						window.location.href = authorizationUrl + `&success_url=${ successUrl }`;
+						return;
+					}
+
+					if ( action === 'fallback-credentials' ) {
+						return navigate(
+							addQueryArgs(
+								{
+									siteId,
+									siteSlug,
+									authorizationUrl,
+									backTo: STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug,
+									from: fromQueryParam,
+								},
+								STEPS.SITE_MIGRATION_FALLBACK_CREDENTIALS.slug
+							)
+						);
+					}
+
+					return navigate(
+						addQueryArgs(
+							{ siteId, from: from || fromQueryParam, siteSlug, preventTicketCreation: true },
+							STEPS.SITE_MIGRATION_ASSISTED_MIGRATION.slug
+						)
+					);
 				}
 			}
 		}
@@ -465,23 +584,12 @@ const siteMigration: Flow = {
 				case STEPS.SITE_MIGRATION_UPGRADE_PLAN.slug: {
 					if ( urlQueryParams.has( 'showModal' ) || ! isFromSiteWordPress ) {
 						urlQueryParams.delete( 'showModal' );
-						if ( config.isEnabled( 'migration-flow/enable-migration-assistant' ) ) {
-							return navigate(
-								`${ STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug }?${ urlQueryParams }`
-							);
-						}
-
-						return navigate(
-							`${ STEPS.SITE_MIGRATION_IMPORT_OR_MIGRATE.slug }?${ urlQueryParams }`
-						);
+						return navigate( `${ STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug }?${ urlQueryParams }` );
 					}
 
 					// If the user selected the "Do it for me" option, we should take them back to the how to migrate step skipping
 					// the modal.
-					if (
-						config.isEnabled( 'migration-flow/enable-migration-assistant' ) &&
-						urlQueryParams.get( 'how' ) === HOW_TO_MIGRATE_OPTIONS.DO_IT_FOR_ME
-					) {
+					if ( urlQueryParams.get( 'how' ) === HOW_TO_MIGRATE_OPTIONS.DO_IT_FOR_ME ) {
 						return navigate( `${ STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug }?${ urlQueryParams }` );
 					}
 
@@ -494,6 +602,31 @@ const siteMigration: Flow = {
 
 				case STEPS.SITE_MIGRATION_CREDENTIALS.slug: {
 					return navigate( `${ STEPS.SITE_MIGRATION_HOW_TO_MIGRATE.slug }?${ urlQueryParams }` );
+				}
+
+				case STEPS.SITE_MIGRATION_OTHER_PLATFORM_DETECTED_IMPORT.slug: {
+					return navigate( `${ STEPS.SITE_MIGRATION_CREDENTIALS.slug }?${ urlQueryParams }` );
+				}
+
+				case STEPS.SITE_MIGRATION_FALLBACK_CREDENTIALS.slug: {
+					if (
+						urlQueryParams.get( 'backTo' ) ===
+						STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug
+					) {
+						return navigate(
+							`${ STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug }?${ urlQueryParams }`
+						);
+					}
+
+					return navigate( `${ STEPS.SITE_MIGRATION_CREDENTIALS.slug }?${ urlQueryParams }` );
+				}
+
+				case STEPS.SITE_MIGRATION_APPLICATION_PASSWORD_AUTHORIZATION.slug: {
+					return navigate( `${ STEPS.SITE_MIGRATION_CREDENTIALS.slug }?${ urlQueryParams }` );
+				}
+
+				case STEPS.SITE_MIGRATION_ALREADY_WPCOM.slug: {
+					return navigate( `${ STEPS.SITE_MIGRATION_CREDENTIALS.slug }?${ urlQueryParams }` );
 				}
 			}
 		};

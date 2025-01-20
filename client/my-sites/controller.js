@@ -50,6 +50,7 @@ import {
 	getNewTitanAccountPath,
 	getPurchaseNewEmailAccountPath,
 	getTitanControlPanelRedirectPath,
+	getTitanSetUpMailboxPath,
 } from 'calypso/my-sites/email/paths';
 import DIFMLiteInProgress from 'calypso/my-sites/marketing/do-it-for-me/difm-lite-in-progress';
 import NavigationComponent from 'calypso/my-sites/navigation';
@@ -237,6 +238,7 @@ function isPathAllowedForDomainOnlySite( path, slug, primaryDomain, contextParam
 		getNewTitanAccountPath,
 		getPurchaseNewEmailAccountPath,
 		getTitanControlPanelRedirectPath,
+		getTitanSetUpMailboxPath,
 	];
 
 	// Builds a list of paths using a site slug plus any additional parameter that may be required
@@ -519,6 +521,12 @@ export function noSite( context, next ) {
 	return next();
 }
 
+const PATHS_EXCLUDED_FROM_SINGLE_SITE_CONTEXT_FOR_SINGLE_SITE_USERS = [
+	'/plugins',
+	'/plugins/manage',
+	'/themes',
+];
+
 /*
  * Set up site selection based on last URL param and/or handle no-sites error cases
  */
@@ -532,6 +540,8 @@ export function siteSelection( context, next ) {
 	const siteFragment = context.params.site || getSiteFragment( context.path );
 	const currentUser = getCurrentUser( getState() );
 	const hasOneSite = currentUser && currentUser.visible_site_count === 1;
+	const isPathExcludedFromSingleSiteContext =
+		PATHS_EXCLUDED_FROM_SINGLE_SITE_CONTEXT_FOR_SINGLE_SITE_USERS.includes( context.path );
 
 	// Making sure non-connected users get redirected to user connection flow.
 	// Details: p9dueE-6Hf-p2
@@ -560,14 +570,14 @@ export function siteSelection( context, next ) {
 
 	/*
 	 * If the user has only one site, redirect to the single site context instead of
-	 * rendering the all-site views.
+	 * rendering the all-site views. Exclude plugins page from this behavior.
 	 *
 	 * If the primary site is not yet available in Redux state, initiate a fetch and postpone the
 	 * redirect until the fetch is complete. (while the primary site ID is a property of the
 	 * current user object and therefore always available, we need to fetch the site info in order
 	 * to convert the site ID to the site slug that will be part of the redirect URL)
 	 */
-	if ( hasOneSite && ! siteFragment ) {
+	if ( hasOneSite && ! siteFragment && ! isPathExcludedFromSingleSiteContext ) {
 		const primarySiteId = getPrimarySiteId( getState() );
 		const primarySiteSlug = getSiteSlug( getState(), primarySiteId );
 

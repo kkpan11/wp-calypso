@@ -8,6 +8,12 @@ import React from 'react';
 import { usePrepareSiteForMigration } from '../use-prepare-site-for-migration';
 import { replyWithError, replyWithSuccess } from './helpers/nock';
 
+jest.mock( '@automattic/calypso-config', () => {
+	const mock = () => '';
+	mock.isEnabled = jest.fn();
+	return mock;
+} );
+
 const TRANSFER_ACTIVE = ( siteId: number ) => ( {
 	atomic_transfer_id: '1253811',
 	blog_id: siteId,
@@ -27,7 +33,7 @@ const errorCaptureMigrationKey = replyWithError( {
 jest.mock( 'calypso/lib/analytics/tracks' );
 jest.mock( 'calypso/lib/logstash' );
 
-describe( 'usePrepareSiteForMigration', () => {
+describe( 'usePrepareSiteForMigrationWithMigrateGuru', () => {
 	beforeAll( () => nock.disableNetConnect() );
 	beforeEach( () => nock.cleanAll() );
 
@@ -117,11 +123,11 @@ describe( 'usePrepareSiteForMigration', () => {
 			.reply( 200, TRANSFER_COMPLETED( siteId ) )
 			.get( `/rest/v1.2/sites/${ siteId }/plugins?http_envelope=1` )
 			.reply( 200, { plugins: [] } )
-			.post( `/rest/v1.2/sites/${ siteId }/plugins/migrate-guru/install?http_envelope=1` )
+			.post( `/rest/v1.2/sites/${ siteId }/plugins/wpcom-migration/install?http_envelope=1` )
 			.reply( replyWithSuccess() )
-			.post( `/rest/v1.2/sites/${ siteId }/plugins/migrate-guru%2Fmigrateguru` )
+			.post( `/rest/v1.2/sites/${ siteId }/plugins/wpcom-migration%2Fwpcom_migration` )
 			.reply( replyWithSuccess() )
-			.get( `/wpcom/v2/sites/${ siteId }/atomic-migration-status/migrate-guru-key` )
+			.get( `/wpcom/v2/sites/${ siteId }/atomic-migration-status/wpcom-migration-key` )
 			.query( { http_envelope: 1 } )
 			.reply( replyWithSuccess( { migration_key: 'some-migration-key' } ) );
 
@@ -152,11 +158,11 @@ describe( 'usePrepareSiteForMigration', () => {
 			.reply( 200, TRANSFER_COMPLETED( siteId ) )
 			.get( `/rest/v1.2/sites/${ siteId }/plugins?http_envelope=1` )
 			.reply( 200, { plugins: [] } )
-			.post( `/rest/v1.2/sites/${ siteId }/plugins/migrate-guru/install?http_envelope=1` )
+			.post( `/rest/v1.2/sites/${ siteId }/plugins/wpcom-migration/install?http_envelope=1` )
 			.reply( replyWithSuccess() )
-			.post( `/rest/v1.2/sites/${ siteId }/plugins/migrate-guru%2Fmigrateguru` )
+			.post( `/rest/v1.2/sites/${ siteId }/plugins/wpcom-migration%2Fwpcom_migration` )
 			.reply( 200 )
-			.get( `/wpcom/v2/sites/${ siteId }/atomic-migration-status/migrate-guru-key` )
+			.get( `/wpcom/v2/sites/${ siteId }/atomic-migration-status/wpcom-migration-key` )
 			.reply( errorCaptureMigrationKey );
 
 		const { result } = render( { siteId: 123 } );

@@ -1,7 +1,6 @@
 import { isEnabled } from '@automattic/calypso-config';
 import { HOSTING_LP_FLOW, ONBOARDING_FLOW, ONBOARDING_GUIDED_FLOW } from '@automattic/onboarding';
 import { translate } from 'i18n-calypso';
-import { onEnterOnboarding } from '../flow-actions';
 
 const noop = () => {};
 
@@ -38,38 +37,12 @@ const getP2Flows = () => {
 		: [];
 };
 
-const getEmailSubscriptionFlow = () => {
-	return isEnabled( 'signup/email-subscription-flow' )
-		? [
-				{
-					name: 'email-subscription',
-					steps: [ 'subscribe' ],
-					destination: ( dependencies ) => `${ dependencies.redirect }`,
-					description:
-						'Signup flow that subscripes user to guides appointments for email campaigns',
-					lastModified: '2024-06-17',
-					showRecaptcha: true,
-					providesDependenciesInQuery: [
-						'user_email',
-						'redirect_to',
-						'mailing_list',
-						'from',
-						'first_name',
-					],
-					optionalDependenciesInQuery: [ 'last_name' ],
-					hideProgressIndicator: true,
-				},
-		  ]
-		: [];
-};
-
 export function generateFlows( {
 	getRedirectDestination = noop,
 	getSignupDestination = noop,
 	getLaunchDestination = noop,
 	getDomainSignupFlowDestination = noop,
 	getEmailSignupFlowDestination = noop,
-	getChecklistThemeDestination = noop,
 	getWithThemeDestination = noop,
 	getWithPluginDestination = noop,
 	getDestinationFromIntent = noop,
@@ -81,7 +54,6 @@ export function generateFlows( {
 } = {} ) {
 	const userSocialStep = getUserSocialStepOrFallback();
 	const p2Flows = getP2Flows();
-	const emailSubscriptionFlow = getEmailSubscriptionFlow();
 
 	const flows = [
 		{
@@ -173,15 +145,6 @@ export function generateFlows( {
 			hideProgressIndicator: true,
 		},
 		{
-			name: 'with-theme-assembler',
-			steps: [ userSocialStep, 'domains-theme-preselected', 'plans' ],
-			destination: getChecklistThemeDestination,
-			description: 'Preselect a theme to activate/buy from an external source with the assembler.',
-			lastModified: '2023-10-11',
-			showRecaptcha: true,
-			hideProgressIndicator: true,
-		},
-		{
 			name: 'with-plugin',
 			steps: [ userSocialStep, 'domains', 'plans-business-with-plugin' ],
 			destination: getWithPluginDestination,
@@ -201,7 +164,6 @@ export function generateFlows( {
 			providesDependenciesInQuery: [ 'coupon' ],
 			optionalDependenciesInQuery: [ 'coupon' ],
 			hideProgressIndicator: true,
-			onEnterFlow: onEnterOnboarding,
 		},
 		{
 			name: ONBOARDING_FLOW,
@@ -213,7 +175,6 @@ export function generateFlows( {
 			providesDependenciesInQuery: [ 'coupon' ],
 			optionalDependenciesInQuery: [ 'coupon' ],
 			hideProgressIndicator: true,
-			onEnterFlow: onEnterOnboarding,
 		},
 		{
 			name: 'plans-first',
@@ -284,15 +245,6 @@ export function generateFlows( {
 			description: 'Checkout without user account or site. Read more https://wp.me/pau2Xa-1hW',
 			lastModified: '2020-06-26',
 			showRecaptcha: true,
-		},
-		{
-			name: 'pressable-nux',
-			steps: [ 'creds-permission', 'creds-confirm', 'creds-complete' ],
-			destination: '/stats',
-			description: 'Allow new Pressable users to grant permission to server credentials',
-			lastModified: '2017-11-20',
-			disallowResume: true,
-			hideProgressIndicator: true,
 		},
 		{
 			name: 'rewind-setup',
@@ -511,8 +463,8 @@ export function generateFlows( {
 			enableBranchSteps: true,
 			hideProgressIndicator: true,
 			enablePresales: false,
-			providesDependenciesInQuery: [ 'coupon' ],
-			optionalDependenciesInQuery: [ 'coupon' ],
+			providesDependenciesInQuery: [ 'coupon', 'back_to', 'newOrExistingSiteChoice' ],
+			optionalDependenciesInQuery: [ 'coupon', 'back_to', 'newOrExistingSiteChoice' ],
 		},
 		{
 			name: 'do-it-for-me-store',
@@ -541,10 +493,10 @@ export function generateFlows( {
 			destination: getDIFMSignupDestination,
 			description: 'A flow for DIFM onboarding',
 			excludeFromManageSiteFlows: true,
-			providesDependenciesInQuery: [ 'siteSlug' ],
+			providesDependenciesInQuery: [ 'siteSlug', 'back_to' ],
+			optionalDependenciesInQuery: [ 'back_to' ],
 			lastModified: '2024-06-14',
 			enablePresales: false,
-			enableHotjar: true,
 		},
 
 		{
@@ -556,7 +508,6 @@ export function generateFlows( {
 			providesDependenciesInQuery: [ 'siteSlug' ],
 			lastModified: '2024-06-14',
 			hideProgressIndicator: true,
-			enableHotjar: true,
 		},
 		{
 			name: 'woocommerce-install',
@@ -655,7 +606,6 @@ export function generateFlows( {
 			hideProgressIndicator: true,
 			enableHotjar: true,
 		},
-		...emailSubscriptionFlow,
 	];
 
 	// convert the array to an object keyed by `name`

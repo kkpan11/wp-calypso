@@ -51,6 +51,13 @@ const buildHref = (
 	const isSiteinContext = siteId || site;
 
 	if ( isJetpackCloud() && ! isSiteinContext ) {
+		const { source, unlinked, redirect_to: redirectTo } = urlQueryArgs;
+
+		// Redirect users coming from My Jetpack while unlinked
+		if ( unlinked === '1' && source === 'my-jetpack' && redirectTo ) {
+			return redirectTo;
+		}
+
 		return '/pricing/jetpack-free/welcome';
 	}
 	return wpAdminUrl || jetpackAdminUrlFromQuery || JPC_PATH_BASE;
@@ -72,7 +79,6 @@ export default function useJetpackFreeButtonProps(
 		: recommendationsUrl;
 
 	if (
-		! siteWpAdminUrl &&
 		urlQueryArgs?.redirect_to &&
 		urlQueryArgs.redirect_to.toLowerCase().includes( 'wp-admin/admin.php?page=my-jetpack' )
 	) {

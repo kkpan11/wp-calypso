@@ -7,15 +7,25 @@ import nock from 'nock';
 import React from 'react';
 import { useSiteMigrationKey } from '../use-site-migration-key';
 
+jest.mock( '@automattic/calypso-config', () => ( {
+	isEnabled: jest.fn(),
+} ) );
+
 describe( 'useSiteMigrationKey', () => {
-	it( 'returns the site migration key', async () => {
+	beforeAll( () => nock.disableNetConnect() );
+
+	beforeEach( () => nock.cleanAll() );
+
+	afterEach( () => jest.resetAllMocks() );
+
+	it( 'returns the migrate to wp.com site migration key if the flag is enabled', async () => {
 		const queryClient = new QueryClient();
 		const wrapper = ( { children } ) => (
 			<QueryClientProvider client={ queryClient }>{ children }</QueryClientProvider>
 		);
 
 		nock( 'https://public-api.wordpress.com' )
-			.get( '/wpcom/v2/sites/123/atomic-migration-status/migrate-guru-key' )
+			.get( '/wpcom/v2/sites/123/atomic-migration-status/wpcom-migration-key' )
 			.query( { http_envelope: 1 } )
 			.once()
 			.reply( 200, { migration_key: 'some-migration-key' } );

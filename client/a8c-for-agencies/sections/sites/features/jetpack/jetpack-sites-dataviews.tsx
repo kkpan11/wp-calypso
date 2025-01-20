@@ -1,8 +1,8 @@
 import config from '@automattic/calypso-config';
 import { Icon, starFilled } from '@wordpress/icons';
+import clsx from 'clsx';
 import { useTranslate } from 'i18n-calypso';
 import { useCallback, useEffect, useContext, useMemo, useState, ReactNode } from 'react';
-import { GuidedTourStep } from 'calypso/a8c-for-agencies/components/guided-tour-step';
 import { DATAVIEWS_LIST } from 'calypso/a8c-for-agencies/components/items-dashboard/constants';
 import ItemsDataViews from 'calypso/a8c-for-agencies/components/items-dashboard/items-dataviews';
 import {
@@ -13,15 +13,15 @@ import SiteSetFavorite from 'calypso/a8c-for-agencies/sections/sites/site-set-fa
 import SitesDashboardContext from 'calypso/a8c-for-agencies/sections/sites/sites-dashboard-context';
 import { SitesDataViewsProps } from 'calypso/a8c-for-agencies/sections/sites/sites-dataviews/interfaces';
 import SiteDataField from 'calypso/a8c-for-agencies/sections/sites/sites-dataviews/site-data-field';
+import { GuidedTourStep } from 'calypso/components/guided-tour/step';
 import SiteStatusContent from 'calypso/jetpack-cloud/sections/agency-dashboard/sites-overview/site-status-content';
 import { JETPACK_MANAGE_ONBOARDING_TOURS_EXAMPLE_SITE } from 'calypso/jetpack-cloud/sections/onboarding-tours/constants';
 import TextPlaceholder from 'calypso/jetpack-cloud/sections/partner-portal/text-placeholder';
 import { useFetchTestConnections } from '../../hooks/use-fetch-test-connection';
 import useFormattedSites from '../../hooks/use-formatted-sites';
 import SiteActions from '../../site-actions';
+import useGetSiteErrors from '../../sites-dataviews/hooks/use-get-site-errors';
 import { AllowedTypes, Site, SiteData } from '../../types';
-import SiteErrorColumn from '../a4a/site-error-column';
-import { A4A_PLUGIN_SLUG } from '../a4a/site-error-preview';
 import type { Field } from '@wordpress/dataviews';
 import type { MouseEvent, KeyboardEvent } from 'react';
 
@@ -58,27 +58,23 @@ export const JetpackSitesDataViews = ( {
 		( acc, item ) => {
 			item.ref = item.site.value.blog_id;
 			acc.push( item );
-			// If this site has an error, we duplicate this row - while changing the duplicate's type to 'error' - to display an error message below it.
-			if ( item.site.error ) {
-				acc.push( {
-					...item,
-					site: {
-						...item.site,
-						type: 'error',
-					},
-					ref: `error-${ item.ref }`,
-				} );
-			}
 			return acc;
 		},
 		[]
 	);
+
+	const getSiteErrors = useGetSiteErrors();
 
 	const isNotProduction = config( 'env_id' ) !== 'a8c-for-agencies-production';
 
 	const openSitePreviewPane = useCallback(
 		( site: Site ) => {
 			if ( site.sticker?.includes( 'migration-in-progress' ) && ! isNotProduction ) {
+				return;
+			}
+
+			if ( site.is_simple ) {
+				// We don't want to open the site preview pane for simple sites.
 				return;
 			}
 
@@ -97,14 +93,9 @@ export const JetpackSitesDataViews = ( {
 				return <TextPlaceholder />;
 			}
 
-			if ( item.site.type === 'error' ) {
-				return <div className="sites-dataview__site-error"></div>;
-			}
-
 			if ( column ) {
 				return (
 					<>
-						{ item.site.error && <span className="sites-dataview__site-error-span"></span> }
 						<SiteStatusContent
 							rows={ item }
 							type={ column }
@@ -178,30 +169,20 @@ export const JetpackSitesDataViews = ( {
 					}
 					const site = item.site.value;
 
-					const isA4APluginInstalled = site.enabled_plugin_slugs?.includes( A4A_PLUGIN_SLUG );
-
-					if ( item.site.type === 'error' ) {
-						return (
-							<SiteErrorColumn
-								isA4APluginInstalled={ isA4APluginInstalled }
-								openSitePreviewPane={ () => openSitePreviewPane( item.site.value ) }
-							/>
-						);
-					}
-
-					const devSitesEnabled = config.isEnabled( 'a4a-dev-sites' );
-					const isDevSite = ( item.isDevSite && devSitesEnabled ) || false;
-
 					return (
-						<>
-							{ item.site.error && <span className="sites-dataview__site-error-span"></span> }
+						<div
+							className={ clsx( {
+								'is-site-selected': site.blog_id === dataViewsState.selectedItem?.blog_id,
+							} ) }
+						>
 							<SiteDataField
 								site={ site }
 								isLoading={ isLoading }
-								isDevSite={ isDevSite }
+								isDevSite={ item.isDevSite }
 								onSiteTitleClick={ openSitePreviewPane }
+								errors={ getSiteErrors( item ) }
 							/>
-						</>
+						</div>
 					);
 				},
 				enableHiding: false,
@@ -361,13 +342,8 @@ export const JetpackSitesDataViews = ( {
 						return <TextPlaceholder />;
 					}
 
-					if ( item.site.type === 'error' ) {
-						return <div className="sites-dataview__site-error"></div>;
-					}
-
 					return (
 						<>
-							{ item.site.error && <span className="sites-dataview__site-error-span"></span> }
 							<span className="sites-dataviews__favorite-btn-wrapper">
 								<SiteSetFavorite
 									isFavorite={ item.isFavorite || false }
@@ -389,15 +365,10 @@ export const JetpackSitesDataViews = ( {
 						return <TextPlaceholder />;
 					}
 
-					if ( item.site.type === 'error' ) {
-						return <div className="sites-dataview__site-error"></div>;
-					}
-
 					const isDevSite = item.isDevSite ?? false;
 
 					return (
 						<>
-							{ item.site.error && <span className="sites-dataview__site-error-span"></span> }
 							{ /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */ }
 							<div
 								className="sites-dataviews__actions"
@@ -407,7 +378,7 @@ export const JetpackSitesDataViews = ( {
 								{ ( ! item.site.value.sticker?.includes( 'migration-in-progress' ) ||
 									isNotProduction ) && (
 									<>
-										{ ! item.site.error && (
+										{ ! item.site.error && ! item.site.value.is_simple && (
 											<SiteActions
 												isLargeScreen={ isLargeScreen }
 												isDevSite={ isDevSite }
@@ -448,7 +419,9 @@ export const JetpackSitesDataViews = ( {
 			pluginsRef,
 			actionsRef,
 			isLoading,
+			dataViewsState.selectedItem?.blog_id,
 			openSitePreviewPane,
+			getSiteErrors,
 			renderField,
 			isNotProduction,
 			isLargeScreen,

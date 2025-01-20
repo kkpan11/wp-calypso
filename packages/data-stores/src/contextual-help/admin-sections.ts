@@ -9,8 +9,13 @@ export function generateAdminSections(
 		menus: string;
 		identity: string;
 	},
+	siteEditorUrls: {
+		root: string;
+		wp_global_styles: string;
+	},
 	googleMailService: string,
-	onboardingUrl: string
+	onboardingUrl: string,
+	isJetpack?: boolean
 ) {
 	return [
 		{
@@ -56,7 +61,7 @@ export function generateAdminSections(
 		},
 		{
 			title: __( "Customize my site's theme" ),
-			link: customizerUrls.root,
+			link: ! isJetpack ? siteEditorUrls.wp_global_styles : customizerUrls.root,
 			synonyms: [ 'color', 'font', 'design', 'css', 'widgets' ],
 			icon: 'customize',
 		},
@@ -249,7 +254,7 @@ export function generateAdminSections(
 		},
 		{
 			title: __( 'Manage post categories', __i18n_text_domain__ ),
-			link: `/settings/writing/${ siteSlug }`,
+			link: `/settings/taxonomies/category/${ siteSlug }`,
 			synonyms: [ 'post', 'category' ],
 			icon: 'cog',
 		},
@@ -261,7 +266,7 @@ export function generateAdminSections(
 		},
 		{
 			title: __( 'Set up a podcast', __i18n_text_domain__ ),
-			link: `/settings/writing/${ siteSlug }#podcasting-details__link-header`,
+			link: `/settings/podcasting/${ siteSlug }`,
 			synonyms: [ 'podcast', 'radio', 'audio' ],
 			icon: 'cog',
 		},
